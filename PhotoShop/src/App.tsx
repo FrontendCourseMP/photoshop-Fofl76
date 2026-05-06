@@ -27,14 +27,14 @@ type PixelInfo = {
 };
 
 function detectFormat(fileName: string): SourceFormat | null {
-  const normalized = fileName.toLowerCase();
-  if (normalized.endsWith('.png')) return 'png';
-  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) return 'jpg';
-  if (normalized.endsWith('.gb7')) return 'gb7';
+  const f = fileName.toLowerCase();
+  if (f.endsWith('.png')) return 'png';
+  if (f.endsWith('.jpg') || f.endsWith('.jpeg')) return 'jpg';
+  if (f.endsWith('.gb7')) return 'gb7';
   return null;
 }
 
-function drawImageOnCanvas(canvas: HTMLCanvasElement, imageData: ImageData): void {
+function drawImageOnCanvas(canvas: HTMLCanvasElement, imageData: ImageData) {
   canvas.width = imageData.width;
   canvas.height = imageData.height;
   const ctx = canvas.getContext('2d');
@@ -45,7 +45,7 @@ function drawImageOnCanvas(canvas: HTMLCanvasElement, imageData: ImageData): voi
 function App() {
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
   const [sourceMeta, setSourceMeta] = useState<SourceMeta | null>(null);
-  const [statusMessage, setStatusMessage] = useState('Готов к работе. Откройте файл через меню "Файл".');
+  const [statusMessage, setStatusMessage] = useState('Готов к работе');
   const [isDragOver, setIsDragOver] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolType>('move');
   const [pixelInfo, setPixelInfo] = useState<PixelInfo | null>(null);
@@ -54,269 +54,197 @@ function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const showToast = (message: string, type: 'success' | 'error') => {
-    if (type === 'success') {
-      toast.success(message, { duration: 2000 });
-      return;
-    }
-    toast.error(message, { duration: 2000 });
-  };
+  const toastMsg = (m: string, t: 'success' | 'error') =>
+    t === 'success' ? toast.success(m) : toast.error(m);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    const close = (e: any) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
         setIsFileMenuOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
   }, []);
 
-  // Обработчик клика по canvas для пипетки
-  const handleCanvasClick = (event: MouseEvent<HTMLCanvasElement>) => {
-    if (activeTool !== 'eyedropper') return;
-    if (!canvasRef.current || !sourceMeta) {
-      const message = 'Нет загруженного изображения.';
-      setStatusMessage(message);
-      showToast(message, 'error');
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    // Координаты клика относительно canvas (с учётом масштаба отображения)
-    const mouseX = (event.clientX - rect.left) * scaleX;
-    const mouseY = (event.clientY - rect.top) * scaleY;
-
-    // Проверяем границы изображения
-    if (mouseX < 0 || mouseX >= canvas.width || mouseY < 0 || mouseY >= canvas.height) {
-      const message = 'Клик вне области изображения.';
-      setStatusMessage(message);
-      showToast(message, 'error');
-      return;
-    }
-
-    const x = Math.floor(mouseX);
-    const y = Math.floor(mouseY);
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Считываем пиксель
-    const imageData = ctx.getImageData(x, y, 1, 1);
-    const [r, g, b] = imageData.data;
-
-    setPixelInfo({ x, y, r, g, b });
-
-    const message = `Пипетка: RGB(${r},${g},${b})`;
-    setStatusMessage(message);
-    showToast(message, 'success');
-  };
-
   const handleImport = () => {
-    inputRef.current?.click();
+    if (inputRef.current) {
+      inputRef.current.value = '';
+      inputRef.current.click();
+    }
     setIsFileMenuOpen(false);
   };
 
-  const exportAsPng = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !sourceMeta) {
-      const message = 'Нет изображения для экспорта.';
-      setStatusMessage(message);
-      showToast(message, 'error');
-      setIsFileMenuOpen(false);
-      return;
-    }
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = 'image.png';
-    link.click();
-    const message = 'Изображение сохранено в формате PNG.';
-    setStatusMessage(message);
-    showToast(message, 'success');
-    setIsFileMenuOpen(false);
-  };
-
-  const exportAsJpg = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !sourceMeta) {
-      const message = 'Нет изображения для экспорта.';
-      setStatusMessage(message);
-      showToast(message, 'error');
-      setIsFileMenuOpen(false);
-      return;
-    }
-
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/jpeg', 0.92);
-    link.download = 'image.jpg';
-    link.click();
-    const message = 'Изображение сохранено в формате JPG.';
-    setStatusMessage(message);
-    showToast(message, 'success');
-    setIsFileMenuOpen(false);
-  };
-
-  const exportAsGb7 = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !sourceMeta) {
-      const message = 'Нет изображения для экспорта.';
-      setStatusMessage(message);
-      showToast(message, 'error');
-      setIsFileMenuOpen(false);
-      return;
-    }
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      const message = 'Не удалось получить контекст canvas.';
-      setStatusMessage(message);
-      showToast(message, 'error');
-      setIsFileMenuOpen(false);
-      return;
-    }
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let includeMask = false;
-    for (let i = 3; i < imageData.data.length; i += 4) {
-      if (imageData.data[i] < 255) {
-        includeMask = true;
-        break;
-      }
-    }
-
-    const gb7 = encodeGb7(imageData, includeMask);
-    const blob = new Blob([gb7], { type: 'application/octet-stream' });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'image.gb7';
-    link.click();
-
-    URL.revokeObjectURL(url);
-    const message = 'Изображение сохранено в формате GB7.';
-    setStatusMessage(message);
-    showToast(message, 'success');
-    setIsFileMenuOpen(false);
-  };
-
-  const handleClearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-      canvas.width = 0;
-      canvas.height = 0;
-    }
-
-    setSourceMeta(null);
-    setPixelInfo(null);
-    const message = 'Холст очищен.';
-    setStatusMessage(message);
-    showToast(message, 'success');
-    setIsFileMenuOpen(false);
+    await processFile(file);
+    e.target.value = '';
   };
 
   const processFile = async (file: File) => {
     const format = detectFormat(file.name);
     if (!format) {
-      const message = 'Неподдерживаемый формат. Используйте PNG, JPG/JPEG или GB7.';
-      setStatusMessage(message);
-      showToast(message, 'error');
+      toastMsg('Неподдерживаемый формат', 'error');
       return;
     }
 
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      toastMsg('Canvas не найден', 'error');
+      return;
+    }
 
     try {
       if (format === 'gb7') {
         const buffer = await file.arrayBuffer();
-        const { imageData, hasMask } = decodeGb7(buffer);
+        const { imageData } = decodeGb7(buffer);
         drawImageOnCanvas(canvas, imageData);
 
         setSourceMeta({
           width: imageData.width,
           height: imageData.height,
-          depth: hasMask ? '7 бит + маска' : '7 бит (серый)',
+          depth: 'GB7',
           format,
-          hasMask,
         });
-        const message = `Загружен GB7: ${file.name}`;
-        setStatusMessage(message);
-        showToast(message, 'success');
+
+        toastMsg('GB7 файл загружен', 'success');
+        setStatusMessage(`Загружен ${file.name}`);
         return;
       }
 
-      const objectUrl = URL.createObjectURL(file);
-      const image = new Image();
+      const url = URL.createObjectURL(file);
+      const img = new Image();
 
-      image.onload = () => {
+      img.onload = () => {
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          URL.revokeObjectURL(objectUrl);
+          toastMsg('Ошибка canvas', 'error');
           return;
         }
 
-        canvas.width = image.width;
-        canvas.height = image.height;
-        ctx.drawImage(image, 0, 0);
-        URL.revokeObjectURL(objectUrl);
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
 
         setSourceMeta({
-          width: image.width,
-          height: image.height,
-          depth: format === 'png' ? '32 бита (RGBA)' : '24 бита (RGB)',
+          width: img.width,
+          height: img.height,
+          depth: format === 'png' ? 'RGBA' : 'RGB',
           format,
         });
-        const message = `Загружен ${format.toUpperCase()}: ${file.name}`;
-        setStatusMessage(message);
-        showToast(message, 'success');
+
+        toastMsg(`Загружен ${format.toUpperCase()}`, 'success');
+        setStatusMessage(`Загружен ${file.name}`);
+
+        URL.revokeObjectURL(url);
       };
 
-      image.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        const message = 'Не удалось загрузить изображение.';
-        setStatusMessage(message);
-        showToast(message, 'error');
+      img.onerror = () => {
+        toastMsg('Ошибка загрузки изображения', 'error');
       };
 
-      image.src = objectUrl;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Неизвестная ошибка при загрузке.';
-      setStatusMessage(message);
-      showToast(message, 'error');
+      img.src = url;
+    } catch {
+      toastMsg('Ошибка загрузки файла', 'error');
     }
   };
 
-  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    await processFile(file);
+  const exportCanvas = (type: 'png' | 'jpg') => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      toastMsg('Нет изображения', 'error');
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.href =
+      type === 'png'
+        ? canvas.toDataURL('image/png')
+        : canvas.toDataURL('image/jpeg', 0.92);
+
+    link.download = `image.${type}`;
+    link.click();
+
+    toastMsg(`Сохранено как ${type.toUpperCase()}`, 'success');
+    setStatusMessage(`Экспорт: ${type.toUpperCase()}`);
+    setIsFileMenuOpen(false);
   };
 
-  const handleDragOver = (event: DragEvent<HTMLElement>) => {
-    event.preventDefault();
-    setIsDragOver(true);
+  const exportAsGb7 = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      toastMsg('Нет изображения', 'error');
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      toastMsg('Ошибка canvas', 'error');
+      return;
+    }
+
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const gb7 = encodeGb7(img, false);
+
+    const blob = new Blob([gb7]);
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'image.gb7';
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    toastMsg('Сохранено как GB7', 'success');
+    setStatusMessage('Экспорт GB7');
+    setIsFileMenuOpen(false);
   };
 
-  const handleDragLeave = (event: DragEvent<HTMLElement>) => {
-    event.preventDefault();
-    setIsDragOver(false);
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+  
+    if (!canvas || !sourceMeta) {
+      toastMsg('Холст пуст', 'error'); // крестик
+      return;
+    }
+  
+    const ctx = canvas.getContext('2d');
+    ctx?.clearRect(0, 0, canvas.width, canvas.height);
+  
+    canvas.width = 0;
+    canvas.height = 0;
+  
+    setSourceMeta(null);
+    setPixelInfo(null);
+  
+    toastMsg('Холст очищен', 'success');
+    setStatusMessage('Холст очищен');
+    setIsFileMenuOpen(false);
   };
 
-  const handleDrop = async (event: DragEvent<HTMLElement>) => {
-    event.preventDefault();
-    setIsDragOver(false);
-    const file = event.dataTransfer.files?.[0];
-    if (!file) return;
-    await processFile(file);
+  const handleCanvasClick = (e: MouseEvent<HTMLCanvasElement>) => {
+    if (activeTool !== 'eyedropper') return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const x = Math.floor((e.clientX - rect.left) * scaleX);
+    const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+    setPixelInfo({ x, y, r, g, b });
+
+    
   };
 
   return (
@@ -329,22 +257,12 @@ function App() {
 
           {isFileMenuOpen && (
             <div className="dropdown-menu">
-              <button onClick={handleImport} className="dropdown-item">
-                Импорт
-              </button>
-              <button onClick={exportAsPng} className="dropdown-item">
-                Экспорт PNG
-              </button>
-              <button onClick={exportAsJpg} className="dropdown-item">
-                Экспорт JPG
-              </button>
-              <button onClick={exportAsGb7} className="dropdown-item">
-                Экспорт GB7
-              </button>
+              <button onClick={handleImport} className="dropdown-item">Импорт</button>
+              <button onClick={() => exportCanvas('png')} className="dropdown-item">PNG</button>
+              <button onClick={() => exportCanvas('jpg')} className="dropdown-item">JPG</button>
+              <button onClick={exportAsGb7} className="dropdown-item">GB7</button>
               <div className="dropdown-divider" />
-              <button onClick={handleClearCanvas} className="dropdown-item clear-item">
-                Очистить холст
-              </button>
+              <button onClick={clearCanvas} className="dropdown-item clear-item">Очистить</button>
             </div>
           )}
         </div>
@@ -363,40 +281,36 @@ function App() {
           <ToolsBar
             activeTool={activeTool}
             onToolChange={setActiveTool}
-            pixelInfo={pixelInfo}
+            pixelInfo={pixelInfo as any}
           />
 
           <section
             className={`canvas-area ${isDragOver ? 'canvas-area--drag-over' : ''}`}
-            onDragOver={handleDragOver}
-            onDragEnter={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const f = e.dataTransfer.files?.[0];
+              if (f) {
+                processFile(f);
+              }
+            }}
           >
-            <canvas
-              ref={canvasRef}
-              className="image-canvas"
-              onClick={handleCanvasClick}
-            />
-            {!sourceMeta && <div className="placeholder">Изображение не загружено</div>}
+            <canvas ref={canvasRef} className="image-canvas" onClick={handleCanvasClick} />
+            {!sourceMeta && <div className="placeholder">Загрузите изображение или перетащите его на холст</div>}
           </section>
         </div>
       </main>
 
       <footer className="status-bar">
-        <span className="status-left">{statusMessage}</span>
-        <span className="status-right">
+        <span>{statusMessage}</span>
+        <span>
           {sourceMeta
-            ? `Ш: ${sourceMeta.width}px | В: ${sourceMeta.height}px | Глубина: ${sourceMeta.depth}`
-            : 'Ш: - | В: - | Глубина: -'}
+            ? `${sourceMeta.width}×${sourceMeta.height}`
+            : 'Нет изображения'}
         </span>
       </footer>
-      <Toaster
-        position="bottom-left"
-        toastOptions={{
-          duration: 2000,
-        }}
-      />
+
+      <Toaster position="bottom-left" />
     </div>
   );
 }
