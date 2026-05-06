@@ -1,73 +1,26 @@
-# React + TypeScript + Vite
+# PhotoShop Lab
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Веб-приложение для загрузки, просмотра и скачивания изображений в форматах `PNG`, `JPG/JPEG` и учебном формате `GB7`.
 
-Currently, two official plugins are available:
+## Функциональность
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Импорт файлов `png`, `jpg`, `jpeg`, `gb7`.
+- Отрисовка изображения на `HTML5 canvas`.
+- Экспорт текущего изображения в `PNG`, `JPG` и `GB7`.
+- Декодер и кодер формата `GrayBit-7 (GB7)` реализованы вручную.
+- Нижняя строка состояния показывает исходные `width`, `height` и `depth`.
 
-## React Compiler
+## Ссылка на деплой
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Указать ссылку после публикации: `https://<your-hosting-link>`
 
-## Expanding the ESLint configuration
+## Проверка задания
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- [ ] Проверена загрузка `PNG` (маленькие/большие изображения).
+- [ ] Проверена загрузка `JPG` (маленькие/большие изображения).
+- [ ] Проверена загрузка `GB7`, включая файлы из LMS.
+- [ ] Проверено скачивание `PNG` из загруженных файлов разных форматов.
+- [ ] Проверено скачивание `JPG` из загруженных файлов разных форматов.
+- [ ] Проверено скачивание `GB7` из загруженных файлов разных форматов.
+- [ ] Проверено поведение при изображениях меньше и больше разрешения монитора.
+- [ ] Проверено поведение интерфейса при изменении ширины viewport.
