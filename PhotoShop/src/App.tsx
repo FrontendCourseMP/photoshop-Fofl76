@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ChangeEvent, DragEvent, MouseEvent } from 'react';
+import type { ChangeEvent, MouseEvent } from 'react';
 import './App.css';
 import { encodeGb7 } from './coder';
 import { decodeGb7 } from './decoder';
@@ -34,14 +34,6 @@ function detectFormat(fileName: string): SourceFormat | null {
   return null;
 }
 
-function drawImageOnCanvas(canvas: HTMLCanvasElement, imageData: ImageData) {
-  canvas.width = imageData.width;
-  canvas.height = imageData.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  ctx.putImageData(imageData, 0, 0);
-}
-
 function App() {
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
   const [sourceMeta, setSourceMeta] = useState<SourceMeta | null>(null);
@@ -49,10 +41,20 @@ function App() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolType>('move');
   const [pixelInfo, setPixelInfo] = useState<PixelInfo | null>(null);
+  
+  // Zoom and pan states
+  const [scale, setScale] = useState(1);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [image, setImage] = useState<HTMLImageElement | ImageData | null>(null);
+  const [originalImageData, setOriginalImageData] = useState<ImageData | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const toastMsg = (m: string, t: 'success' | 'error') =>
     t === 'success' ? toast.success(m) : toast.error(m);
@@ -66,6 +68,71 @@ function App() {
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, []);
+
+  // Redraw canvas when scale/pan changes
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size to container size
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // If no image, just return
+    if (!image) return;
+    
+    // Save context state
+    ctx.save();
+    
+    // Apply transformations
+    ctx.translate(canvas.width / 2 + panX, canvas.height / 2 + panY);
+    ctx.scale(scale, scale);
+    
+    // Draw image centered at origin
+    if (image instanceof ImageData) {
+      // For ImageData
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = image.width;
+      tempCanvas.height = image.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (tempCtx) {
+        tempCtx.putImageData(image, 0, 0);
+        ctx.drawImage(tempCanvas, -image.width / 2, -image.height / 2);
+      }
+    } else if (image instanceof HTMLImageElement) {
+      // For HTMLImageElement
+      ctx.drawImage(image, -image.width / 2, -image.height / 2);
+    }
+    
+    ctx.restore();
+  }, [scale, panX, panY, image]);
+
+  const updateImageOnCanvas = (imgData: HTMLImageElement | ImageData) => {
+    setImage(imgData);
+    // Reset zoom and pan when new image is loaded
+    setScale(1);
+    setPanX(0);
+    setPanY(0);
+  };
+
+  const handleZoomChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newScale = parseFloat(e.target.value);
+    setScale(newScale);
+  };
+
+  const resetZoom = () => {
+    setScale(1);
+    setPanX(0);
+    setPanY(0);
+    toastMsg('Масштаб и позиция сброшены', 'success');
+  };
 
   const handleImport = () => {
     if (inputRef.current) {
@@ -90,18 +157,14 @@ function App() {
       return;
     }
 
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      toastMsg('Canvas не найден', 'error');
-      return;
-    }
-
     try {
       if (format === 'gb7') {
         const buffer = await file.arrayBuffer();
         const { imageData } = decodeGb7(buffer);
-        drawImageOnCanvas(canvas, imageData);
-
+        
+        // Store ImageData for zoom/pan
+        updateImageOnCanvas(imageData);
+        
         setSourceMeta({
           width: imageData.width,
           height: imageData.height,
@@ -118,16 +181,9 @@ function App() {
       const img = new Image();
 
       img.onload = () => {
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          toastMsg('Ошибка canvas', 'error');
-          return;
-        }
-
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-
+        // Store HTMLImageElement for zoom/pan
+        updateImageOnCanvas(img);
+        
         setSourceMeta({
           width: img.width,
           height: img.height,
@@ -152,17 +208,34 @@ function App() {
   };
 
   const exportCanvas = (type: 'png' | 'jpg') => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
+    if (!image) {
       toastMsg('Нет изображения', 'error');
       return;
+    }
+
+    // Create temporary canvas for export without transformations
+    const exportCanvas = document.createElement('canvas');
+    if (image instanceof HTMLImageElement) {
+      exportCanvas.width = image.width;
+      exportCanvas.height = image.height;
+      const ctx = exportCanvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(image, 0, 0);
+      }
+    } else if (image instanceof ImageData) {
+      exportCanvas.width = image.width;
+      exportCanvas.height = image.height;
+      const ctx = exportCanvas.getContext('2d');
+      if (ctx) {
+        ctx.putImageData(image, 0, 0);
+      }
     }
 
     const link = document.createElement('a');
     link.href =
       type === 'png'
-        ? canvas.toDataURL('image/png')
-        : canvas.toDataURL('image/jpeg', 0.92);
+        ? exportCanvas.toDataURL('image/png')
+        : exportCanvas.toDataURL('image/jpeg', 0.92);
 
     link.download = `image.${type}`;
     link.click();
@@ -173,20 +246,32 @@ function App() {
   };
 
   const exportAsGb7 = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
+    if (!image) {
       toastMsg('Нет изображения', 'error');
       return;
     }
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      toastMsg('Ошибка canvas', 'error');
+    let imageData: ImageData;
+    
+    if (image instanceof HTMLImageElement) {
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        toastMsg('Ошибка canvas', 'error');
+        return;
+      }
+      ctx.drawImage(image, 0, 0);
+      imageData = ctx.getImageData(0, 0, image.width, image.height);
+    } else if (image instanceof ImageData) {
+      imageData = image;
+    } else {
+      toastMsg('Нет изображения', 'error');
       return;
     }
 
-    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const gb7 = encodeGb7(img, false);
+    const gb7 = encodeGb7(imageData, false);
 
     const blob = new Blob([gb7]);
     const url = URL.createObjectURL(blob);
@@ -204,29 +289,63 @@ function App() {
   };
 
   const clearCanvas = () => {
-    const canvas = canvasRef.current;
-  
-    if (!canvas || !sourceMeta) {
-      toastMsg('Холст пуст', 'error'); // крестик
+    // Check if canvas is already empty
+    if (!image && !sourceMeta) {
+      toast.error('холст пуст');
+      setStatusMessage('Холст пуст');
+      setIsFileMenuOpen(false);
       return;
     }
   
-    const ctx = canvas.getContext('2d');
-    ctx?.clearRect(0, 0, canvas.width, canvas.height);
-  
-    canvas.width = 0;
-    canvas.height = 0;
-  
+    // Clear all states
     setSourceMeta(null);
     setPixelInfo(null);
+    setImage(null);
+    setOriginalImageData(null);
+    setScale(1);
+    setPanX(0);
+    setPanY(0);
+    
+    // Clear the canvas element
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
   
-    toastMsg('Холст очищен', 'success');
+    toast.success('Холст очищен');
     setStatusMessage('Холст очищен');
     setIsFileMenuOpen(false);
   };
 
+  // Handle mouse down for panning (only when move tool is active)
+  const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    if (activeTool === 'move' && image && e.button === 0) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - panX, y: e.clientY - panY });
+      e.preventDefault();
+    }
+  };
+
+  // Handle mouse move for panning
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (isDragging && activeTool === 'move' && image) {
+      setPanX(e.clientX - dragStart.x);
+      setPanY(e.clientY - dragStart.y);
+    }
+  };
+
+  // Handle mouse up to stop panning
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
   const handleCanvasClick = (e: MouseEvent<HTMLCanvasElement>) => {
     if (activeTool !== 'eyedropper') return;
+
+    if (!image) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -235,16 +354,51 @@ function App() {
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
-    const x = Math.floor((e.clientX - rect.left) * scaleX);
-    const y = Math.floor((e.clientY - rect.top) * scaleY);
+    const canvasX = (e.clientX - rect.left) * scaleX;
+    const canvasY = (e.clientY - rect.top) * scaleY;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // Transform canvas coordinates to image coordinates
+    const transformedX = (canvasX - canvas.width / 2 - panX) / scale;
+    const transformedY = (canvasY - canvas.height / 2 - panY) / scale;
 
-    const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
-    setPixelInfo({ x, y, r, g, b });
+    let imgWidth: number, imgHeight: number;
+    if (image instanceof HTMLImageElement) {
+      imgWidth = image.width;
+      imgHeight = image.height;
+    } else {
+      imgWidth = image.width;
+      imgHeight = image.height;
+    }
 
-    
+    const imageX = Math.floor(transformedX + imgWidth / 2);
+    const imageY = Math.floor(transformedY + imgHeight / 2);
+
+    if (imageX >= 0 && imageX < imgWidth && imageY >= 0 && imageY < imgHeight) {
+      // Get pixel color
+      let ctx: CanvasRenderingContext2D | null = null;
+      if (image instanceof HTMLImageElement) {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = imgWidth;
+        tempCanvas.height = imgHeight;
+        ctx = tempCanvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(image, 0, 0);
+        }
+      } else if (image instanceof ImageData) {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = imgWidth;
+        tempCanvas.height = imgHeight;
+        ctx = tempCanvas.getContext('2d');
+        if (ctx) {
+          ctx.putImageData(image, 0, 0);
+        }
+      }
+
+      if (ctx) {
+        const [r, g, b] = ctx.getImageData(imageX, imageY, 1, 1).data;
+        setPixelInfo({ x: imageX, y: imageY, r, g, b });
+      }
+    }
   };
 
   return (
@@ -285,15 +439,26 @@ function App() {
           />
 
           <section
+            ref={containerRef}
             className={`canvas-area ${isDragOver ? 'canvas-area--drag-over' : ''}`}
-            onDragOver={(e) => e.preventDefault()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragOver(true);
+            }}
+            onDragLeave={() => setIsDragOver(false)}
             onDrop={(e) => {
               e.preventDefault();
+              setIsDragOver(false);
               const f = e.dataTransfer.files?.[0];
               if (f) {
                 processFile(f);
               }
             }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{ cursor: activeTool === 'move' && image ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
           >
             <canvas ref={canvasRef} className="image-canvas" onClick={handleCanvasClick} />
             {!sourceMeta && <div className="placeholder">Загрузите изображение или перетащите его на холст</div>}
@@ -302,12 +467,41 @@ function App() {
       </main>
 
       <footer className="status-bar">
-        <span>{statusMessage}</span>
-        <span>
-          {sourceMeta
-            ? `${sourceMeta.width}×${sourceMeta.height}`
-            : 'Нет изображения'}
-        </span>
+        <div className="status-left">{statusMessage}</div>
+        <div className="status-right">
+          {sourceMeta ? (
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+              <span>{sourceMeta.width}×{sourceMeta.height}</span>
+              <span>|</span>
+              <span>Зум: {Math.round(scale * 100)}%</span>
+              <input
+                type="range"
+                min="0.1"
+                max="5"
+                step="0.01"
+                value={scale}
+                onChange={handleZoomChange}
+                style={{ width: '120px' }}
+                title="Масштаб"
+              />
+              <button
+                onClick={resetZoom}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  backgroundColor: '#3c3c3c',
+                  color: '#e0e0e0',
+                  border: '1px solid #555',
+                  borderRadius: '4px'
+                }}
+                title="Сбросить масштаб и позицию"
+              >
+                Сброс
+              </button>
+            </div>
+          ) : 'Нет изображения'}
+        </div>
       </footer>
 
       <Toaster position="bottom-left" />
