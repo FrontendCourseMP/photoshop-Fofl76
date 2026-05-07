@@ -49,7 +49,6 @@ function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [image, setImage] = useState<HTMLImageElement | ImageData | null>(null);
-  const [originalImageData, setOriginalImageData] = useState<ImageData | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -301,7 +300,7 @@ function App() {
     setSourceMeta(null);
     setPixelInfo(null);
     setImage(null);
-    setOriginalImageData(null);
+    // Removed undefined function call
     setScale(1);
     setPanX(0);
     setPanY(0);

@@ -1,6 +1,7 @@
-import './ToolsBar.css';
+import "./ToolsBar.css";
+import toast from "react-hot-toast";
 
-export type ToolType = 'move' | 'eyedropper';
+export type ToolType = "move" | "eyedropper";
 
 type PixelInfo = {
   x: number;
@@ -20,7 +21,11 @@ type ToolsBarProps = {
 };
 
 // Встроенная функция конвертации RGB в CIELAB
-function rgbToLab(r: number, g: number, b: number): { L: number; a: number; b: number } {
+function rgbToLab(
+  r: number,
+  g: number,
+  b: number
+): { L: number; a: number; b: number } {
   // Нормализация RGB в диапазон 0..1
   let rLinear = r / 255;
   let gLinear = g / 255;
@@ -77,12 +82,64 @@ function rgbToLab(r: number, g: number, b: number): { L: number; a: number; b: n
   };
 }
 
-export function ToolsBar({ activeTool, onToolChange, pixelInfo }: ToolsBarProps) {
+// Функция для преобразования RGB в HEX
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (n: number) => {
+    const hex = n.toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  };
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+}
+
+// Функция для копирования текста в буфер обмена
+async function copyToClipboard(
+  text: string,
+  onSuccess?: () => void,
+  onError?: () => void
+) {
+  try {
+    await navigator.clipboard.writeText(text);
+    onSuccess?.();
+  } catch (err) {
+    console.error("Ошибка копирования:", err);
+    onError?.();
+  }
+}
+
+export function ToolsBar({
+  activeTool,
+  onToolChange,
+  pixelInfo,
+}: ToolsBarProps) {
   // Преобразуем RGB в LAB для отображения (если есть pixelInfo)
   let labInfo = null;
+  let hexColor = null;
+
   if (pixelInfo) {
     labInfo = rgbToLab(pixelInfo.r, pixelInfo.g, pixelInfo.b);
+    hexColor = rgbToHex(pixelInfo.r, pixelInfo.g, pixelInfo.b);
   }
+
+  const handleCopyHex = async () => {
+    if (hexColor) {
+      await copyToClipboard(
+        hexColor,
+        () => toast.success(`Цвет ${hexColor} скопирован!`),
+        () => toast.error("Не удалось скопировать цвет")
+      );
+    }
+  };
+
+  const handleCopyRgb = async () => {
+    if (pixelInfo) {
+      const rgbString = `rgb(${pixelInfo.r}, ${pixelInfo.g}, ${pixelInfo.b})`;
+      await copyToClipboard(
+        rgbString,
+        () => toast.success(`Цвет ${rgbString} скопирован!`),
+        () => toast.error("Не удалось скопировать цвет")
+      );
+    }
+  };
 
   return (
     <aside className="tools-bar">
@@ -91,16 +148,20 @@ export function ToolsBar({ activeTool, onToolChange, pixelInfo }: ToolsBarProps)
       <div className="tools-bar__buttons">
         <button
           type="button"
-          className={`tools-bar__btn ${activeTool === 'move' ? 'is-active' : ''}`}
-          onClick={() => onToolChange('move')}
+          className={`tools-bar__btn ${
+            activeTool === "move" ? "is-active" : ""
+          }`}
+          onClick={() => onToolChange("move")}
         >
           Курсор (перемещение)
         </button>
 
         <button
           type="button"
-          className={`tools-bar__btn ${activeTool === 'eyedropper' ? 'is-active' : ''}`}
-          onClick={() => onToolChange('eyedropper')}
+          className={`tools-bar__btn ${
+            activeTool === "eyedropper" ? "is-active" : ""
+          }`}
+          onClick={() => onToolChange("eyedropper")}
         >
           Пипетка
         </button>
@@ -110,14 +171,51 @@ export function ToolsBar({ activeTool, onToolChange, pixelInfo }: ToolsBarProps)
         <h4>Информация о пикселе</h4>
         {pixelInfo ? (
           <>
+            <div className="tools-bar__color-preview">
+              {/* Квадрат с цветом */}
+              <div
+                className="color-square"
+                style={{ backgroundColor: hexColor || "#000000" }}
+                title={hexColor || ""}
+              />
+
+              {/* HEX код с возможностью копирования */}
+              <div className="color-info">
+                <div
+                  className="color-hex copyable"
+                  onClick={handleCopyHex}
+                  title="Нажмите для копирования HEX"
+                >
+                  <span className="color-label">HEX:</span>
+                  <span className="color-value">{hexColor}</span>
+                  <span className="copy-icon">📋</span>
+                </div>
+
+                <div
+                  className="color-rgb copyable"
+                  onClick={handleCopyRgb}
+                  title="Нажмите для копирования RGB"
+                >
+                  <span className="color-label">RGB:</span>
+                  <span className="color-value">
+                    {pixelInfo.r}, {pixelInfo.g}, {pixelInfo.b}
+                  </span>
+                  <span className="copy-icon">📋</span>
+                </div>
+              </div>
+            </div>
+
             <p>
-              <strong>X:</strong> {pixelInfo.x} <strong>Y:</strong> {pixelInfo.y}
+              <strong>X:</strong> {pixelInfo.x} <strong>Y:</strong>{" "}
+              {pixelInfo.y}
             </p>
             <p>
-              <strong>R:</strong> {pixelInfo.r} <strong>G:</strong> {pixelInfo.g} <strong>B:</strong> {pixelInfo.b}
+              <strong>R:</strong> {pixelInfo.r} <strong>G:</strong>{" "}
+              {pixelInfo.g} <strong>B:</strong> {pixelInfo.b}
             </p>
             <p>
-              <strong>L:</strong> {labInfo?.L} <strong>a:</strong> {labInfo?.a} <strong>b:</strong> {labInfo?.b}
+              <strong>L:</strong> {labInfo?.L} <strong>a:</strong> {labInfo?.a}{" "}
+              <strong>b:</strong> {labInfo?.b}
             </p>
           </>
         ) : (

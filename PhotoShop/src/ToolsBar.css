@@ -72,3 +72,91 @@
   color: #cccccc;
   margin-bottom: 4px;
 }
+/* Добавьте к существующим стилям */
+
+.tools-bar__color-preview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 10px;
+  background: #2a2a2a;
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+.color-square {
+  width: 50px;
+  height: 50px;
+  border-radius: 4px;
+  border: 2px solid #555;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.color-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.color-hex,
+.color-rgb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 4px 8px;
+  background: #1e1e1e;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.color-hex:hover,
+.color-rgb:hover {
+  background: #3a3a3a;
+  transform: translateX(2px);
+}
+
+.color-hex:active,
+.color-rgb:active {
+  transform: scale(0.98);
+}
+
+.color-label {
+  font-weight: 600;
+  color: #888;
+  min-width: 40px;
+}
+
+.color-value {
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 11px;
+  color: #e0e0e0;
+  flex: 1;
+}
+
+.copy-icon {
+  font-size: 12px;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.color-hex:hover .copy-icon,
+.color-rgb:hover .copy-icon {
+  opacity: 1;
+}
+
+/* Стили для тостов с цветом */
+.toast-success {
+  background: #2e7d32 !important;
+  color: white !important;
+}
+
+.toast-error {
+  background: #c62828 !important;
+  color: white !important;
+}
