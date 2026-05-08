@@ -188,7 +188,7 @@ export function ToolsBar({
                 >
                   <span className="color-label">HEX:</span>
                   <span className="color-value">{hexColor}</span>
-                  <span className="copy-icon">📋</span>
+                  <span className="copy-icon"></span>
                 </div>
 
                 <div
@@ -200,7 +200,7 @@ export function ToolsBar({
                   <span className="color-value">
                     {pixelInfo.r}, {pixelInfo.g}, {pixelInfo.b}
                   </span>
-                  <span className="copy-icon">📋</span>
+                  <span className="copy-icon"></span>
                 </div>
               </div>
             </div>

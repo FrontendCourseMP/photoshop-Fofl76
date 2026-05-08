@@ -42,7 +42,7 @@ function App() {
   const [activeTool, setActiveTool] = useState<ToolType>('move');
   const [pixelInfo, setPixelInfo] = useState<PixelInfo | null>(null);
   
-  // Zoom and pan states
+  
   const [scale, setScale] = useState(1);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
@@ -68,7 +68,7 @@ function App() {
     return () => document.removeEventListener('mousedown', close);
   }, []);
 
-  // Redraw canvas when scale/pan changes
+  
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -77,26 +77,25 @@ function App() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size to container size
+    
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
 
-    // Clear canvas
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // If no image, just return
+    
     if (!image) return;
     
-    // Save context state
+    
     ctx.save();
     
-    // Apply transformations
+    
     ctx.translate(canvas.width / 2 + panX, canvas.height / 2 + panY);
     ctx.scale(scale, scale);
     
-    // Draw image centered at origin
+    
     if (image instanceof ImageData) {
-      // For ImageData
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = image.width;
       tempCanvas.height = image.height;
@@ -106,7 +105,6 @@ function App() {
         ctx.drawImage(tempCanvas, -image.width / 2, -image.height / 2);
       }
     } else if (image instanceof HTMLImageElement) {
-      // For HTMLImageElement
       ctx.drawImage(image, -image.width / 2, -image.height / 2);
     }
     
@@ -115,7 +113,6 @@ function App() {
 
   const updateImageOnCanvas = (imgData: HTMLImageElement | ImageData) => {
     setImage(imgData);
-    // Reset zoom and pan when new image is loaded
     setScale(1);
     setPanX(0);
     setPanY(0);
@@ -161,7 +158,7 @@ function App() {
         const buffer = await file.arrayBuffer();
         const { imageData } = decodeGb7(buffer);
         
-        // Store ImageData for zoom/pan
+      
         updateImageOnCanvas(imageData);
         
         setSourceMeta({
@@ -180,7 +177,6 @@ function App() {
       const img = new Image();
 
       img.onload = () => {
-        // Store HTMLImageElement for zoom/pan
         updateImageOnCanvas(img);
         
         setSourceMeta({
@@ -212,7 +208,6 @@ function App() {
       return;
     }
 
-    // Create temporary canvas for export without transformations
     const exportCanvas = document.createElement('canvas');
     if (image instanceof HTMLImageElement) {
       exportCanvas.width = image.width;
@@ -288,7 +283,6 @@ function App() {
   };
 
   const clearCanvas = () => {
-    // Check if canvas is already empty
     if (!image && !sourceMeta) {
       toast.error('холст пуст');
       setStatusMessage('Холст пуст');
@@ -296,16 +290,14 @@ function App() {
       return;
     }
   
-    // Clear all states
+    
     setSourceMeta(null);
     setPixelInfo(null);
     setImage(null);
-    // Removed undefined function call
     setScale(1);
     setPanX(0);
     setPanY(0);
     
-    // Clear the canvas element
     const canvas = canvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext('2d');
@@ -319,7 +311,7 @@ function App() {
     setIsFileMenuOpen(false);
   };
 
-  // Handle mouse down for panning (only when move tool is active)
+  
   const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
     if (activeTool === 'move' && image && e.button === 0) {
       setIsDragging(true);
@@ -328,7 +320,7 @@ function App() {
     }
   };
 
-  // Handle mouse move for panning
+  
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     if (isDragging && activeTool === 'move' && image) {
       setPanX(e.clientX - dragStart.x);
@@ -336,7 +328,7 @@ function App() {
     }
   };
 
-  // Handle mouse up to stop panning
+  
   const handleMouseUp = () => {
     setIsDragging(false);
   };
@@ -356,7 +348,7 @@ function App() {
     const canvasX = (e.clientX - rect.left) * scaleX;
     const canvasY = (e.clientY - rect.top) * scaleY;
 
-    // Transform canvas coordinates to image coordinates
+    
     const transformedX = (canvasX - canvas.width / 2 - panX) / scale;
     const transformedY = (canvasY - canvas.height / 2 - panY) / scale;
 
@@ -373,7 +365,6 @@ function App() {
     const imageY = Math.floor(transformedY + imgHeight / 2);
 
     if (imageX >= 0 && imageX < imgWidth && imageY >= 0 && imageY < imgHeight) {
-      // Get pixel color
       let ctx: CanvasRenderingContext2D | null = null;
       if (image instanceof HTMLImageElement) {
         const tempCanvas = document.createElement('canvas');
