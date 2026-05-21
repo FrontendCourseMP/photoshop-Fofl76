@@ -1,162 +1,644 @@
+/* ToolsBar.css - обновленная версия */
+
 .tools-bar {
-  width: 260px;              /* фиксированная ширина */
-  min-width: 260px;          /* НЕ даём сжиматься */
-  max-width: 260px;
-
-  height: 100%;
-  flex-shrink: 0;            /* ключевой фикс */
-
-  background: #252526;
-  border-right: 1px solid #404040;
-
+  width: 280px;
+  background-color: #2d2d30;
+  border-right: 1px solid #3c3c3c;
   display: flex;
   flex-direction: column;
-
-  padding: 12px;
-  gap: 12px;
-
+  padding: 16px;
+  gap: 8px;
   overflow-y: auto;
-}
-
-/* Заголовок */
-.tools-bar__title {
-  font-size: 0.9rem;
-  color: #cccccc;
-  font-weight: 600;
-}
-
-/* Кнопки */
-.tools-bar__buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.tools-bar__btn {
-  background: #2d2d2d;
-  border: 1px solid #404040;
-  color: #e0e0e0;
-
-  padding: 6px 8px;
-  border-radius: 4px;
-
-  font-size: 0.8rem;
-  cursor: pointer;
-
-  transition: all 0.15s ease;
-}
-
-.tools-bar__btn:hover {
-  background: #3c3c3c;
-}
-
-.tools-bar__btn.is-active {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: #fff;
-}
-
-/* Инфа */
-.tools-bar__info {
-  margin-top: auto;
-  font-size: 0.75rem;
-  color: #b0b0b0;
-
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.tools-bar__info h4 {
-  font-size: 0.8rem;
-  color: #cccccc;
-  margin-bottom: 4px;
-}
-/* Добавьте к существующим стилям */
-
-.tools-bar__color-preview {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 10px;
-  background: #2a2a2a;
-  border-radius: 6px;
-  border: 1px solid #444;
-}
-
-.color-square {
-  width: 50px;
-  height: 50px;
-  border-radius: 4px;
-  border: 2px solid #555;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   flex-shrink: 0;
 }
 
-.color-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.tools-bar__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #cccccc;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
+.tools-bar__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.tools-bar__btn {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid #3c3c3c;
+  background: #252526;
+  color: #cccccc;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tools-bar__btn:hover {
+  background: #2d2d2d;
+  border-color: #555;
+}
+
+.tools-bar__btn.is-active {
+  border: 2px solid #007acc;
+  background: #1a3a5c;
+}
+
+.tool-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tool-icon img {
+  width: 24px;
+  height: 24px;
+  filter: invert(1);
+}
+
+.tools-bar__divider {
+  height: 1px;
+  background-color: #3c3c3c;
+  margin: 12px 0;
+}
+
+/* Каналы - увеличенные превью */
+.channels-bar {
+  margin-top: 4px;
+}
+
+.channels-bar__title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #cccccc;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.channels-bar__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.channels-bar__btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #3c3c3c;
+  background: #252526;
+  color: #cccccc;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+}
+
+.channels-bar__btn:hover {
+  background: #2d2d2d;
+  border-color: #555;
+  transform: translateX(2px);
+}
+
+.channels-bar__btn--active {
+  border: 2px solid #007acc;
+  background: #1a3a5c;
+  transform: translateX(4px);
+}
+
+.channels-bar__btn--rgb.channels-bar__btn--active {
+  border-color: #ffffff;
+  background: #333333;
+}
+
+.channels-bar__btn--red.channels-bar__btn--active {
+  border-color: #ff4444;
+  background: #3a1a1a;
+}
+
+.channels-bar__btn--green.channels-bar__btn--active {
+  border-color: #44ff44;
+  background: #1a3a1a;
+}
+
+.channels-bar__btn--blue.channels-bar__btn--active {
+  border-color: #4444ff;
+  background: #1a1a3a;
+}
+
+.channels-bar__btn--gray.channels-bar__btn--active {
+  border-color: #aaaaaa;
+  background: #3a3a3a;
+}
+
+.channels-bar__btn-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.channel-preview {
+  width: 60px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #3c3c3c;
+  transition: all 0.2s ease;
+}
+
+.channels-bar__btn:hover .channel-preview {
+  border-color: #666;
+  transform: scale(1.02);
+}
+
+.channel-label {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+}
+
+/* Информация о пикселе */
+.tools-bar__info {
+  margin-top: 8px;
+}
+
+.tools-bar__info h4 {
+  font-size: 12px;
+  font-weight: 500;
+  color: #cccccc;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tools-bar__info p {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  padding: 16px;
+  background: #252526;
+  border-radius: 6px;
+}
+
+.tools-bar__color-preview {
+  background: #252526;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.color-square {
+  width: 100%;
+  height: 80px;
+  border-radius: 6px;
+  border: 1px solid #3c3c3c;
+  margin-bottom: 12px;
+}
+
+.color-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pixel-coords,
+.pixel-lab,
 .color-hex,
 .color-rgb {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
   font-size: 12px;
-  padding: 4px 8px;
+  padding: 6px 8px;
   background: #1e1e1e;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
+  transition: background 0.2s ease;
 }
 
 .color-hex:hover,
 .color-rgb:hover {
-  background: #3a3a3a;
-  transform: translateX(2px);
-}
-
-.color-hex:active,
-.color-rgb:active {
-  transform: scale(0.98);
+  background: #2a2a2a;
 }
 
 .color-label {
-  font-weight: 600;
   color: #888;
-  min-width: 40px;
+  font-weight: 500;
 }
 
 .color-value {
-  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  color: #cccccc;
+  font-family: 'Consolas', monospace;
   font-size: 11px;
-  color: #e0e0e0;
+}
+/* Добавьте эти стили к существующему ToolsBar.css */
+
+/* Стили для заголовков секций */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+  margin-bottom: 8px;
+  transition: background 0.2s ease;
+  border-radius: 4px;
+}
+
+.section-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.section-header h4,
+.section-header .channels-bar__title {
+  margin: 0;
   flex: 1;
 }
 
-.copy-icon {
+.collapse-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
   font-size: 12px;
-  opacity: 0.6;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.collapse-btn:hover {
+  background: #3c3c3c;
+  color: #ccc;
+}
+
+/* Анимация для контента */
+.channels-bar__buttons,
+.tools-bar__color-preview,
+.tools-bar__info > p {
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Обновленные стили для заголовков */
+.channels-bar__title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #cccccc;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.tools-bar__info h4 {
+  font-size: 12px;
+  font-weight: 500;
+  color: #cccccc;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Остальные стили из предыдущей версии */
+.tools-bar {
+  width: 280px;
+  background-color: #2d2d30;
+  border-right: 1px solid #3c3c3c;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 8px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.tools-bar__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #cccccc;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tools-bar__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.tools-bar__btn {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid #3c3c3c;
+  background: #252526;
+  color: #cccccc;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tools-bar__btn:hover {
+  background: #2d2d2d;
+  border-color: #555;
+}
+
+.tools-bar__btn.is-active {
+  border: 2px solid #007acc;
+  background: #1a3a5c;
+}
+
+.tool-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tool-icon img {
+  width: 24px;
+  height: 24px;
+  filter: invert(1);
+}
+
+.tools-bar__divider {
+  height: 1px;
+  background-color: #3c3c3c;
+  margin: 12px 0;
+}
+
+/* Каналы */
+.channels-bar {
+  margin-top: 4px;
+}
+
+.channels-bar__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.channels-bar__btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #3c3c3c;
+  background: #252526;
+  color: #cccccc;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+}
+
+.channels-bar__btn:hover {
+  background: #2d2d2d;
+  border-color: #555;
+  transform: translateX(2px);
+}
+
+.channels-bar__btn--active {
+  border: 2px solid #007acc;
+  background: #1a3a5c;
+  transform: translateX(4px);
+}
+
+.channels-bar__btn--rgb.channels-bar__btn--active {
+  border-color: #ffffff;
+  background: #333333;
+}
+
+.channels-bar__btn--red.channels-bar__btn--active {
+  border-color: #ff4444;
+  background: #3a1a1a;
+}
+
+.channels-bar__btn--green.channels-bar__btn--active {
+  border-color: #44ff44;
+  background: #1a3a1a;
+}
+
+.channels-bar__btn--blue.channels-bar__btn--active {
+  border-color: #4444ff;
+  background: #1a1a3a;
+}
+
+.channels-bar__btn--gray.channels-bar__btn--active {
+  border-color: #aaaaaa;
+  background: #3a3a3a;
+}
+
+.channels-bar__btn-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.channel-preview {
+  width: 60px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #3c3c3c;
+  transition: all 0.2s ease;
+}
+
+.channels-bar__btn:hover .channel-preview {
+  border-color: #666;
+  transform: scale(1.02);
+}
+
+.channel-label {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+}
+
+/* Информация о пикселе */
+.tools-bar__info {
+  margin-top: 8px;
+}
+
+.tools-bar__info p {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  padding: 16px;
+  background: #252526;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.tools-bar__color-preview {
+  background: #252526;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.color-square {
+  width: 100%;
+  height: 80px;
+  border-radius: 6px;
+  border: 1px solid #3c3c3c;
+  margin-bottom: 12px;
+}
+
+.color-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pixel-coords,
+.pixel-lab,
+.color-hex,
+.color-rgb {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 6px 8px;
+  background: #1e1e1e;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.color-hex:hover,
+.color-rgb:hover {
+  background: #2a2a2a;
+}
+
+.color-label {
+  color: #888;
+  font-weight: 500;
+}
+
+.color-value {
+  color: #cccccc;
+  font-family: 'Consolas', monospace;
+  font-size: 11px;
+}
+/* Стили для контроля альфа-канала */
+.alpha-control {
+  margin-top: 16px;
+  padding: 12px;
+  background: #252526;
+  border-radius: 6px;
+  border: 1px solid #3c3c3c;
+}
+
+.alpha-control__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.alpha-control__checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.alpha-control__text {
+  font-size: 12px;
+  color: #cccccc;
+  font-weight: 500;
+}
+
+.alpha-control__hint {
+  font-size: 10px;
+  color: #888;
+  margin-top: 6px;
+  padding-left: 24px;
+}
+
+/* Анимация для альфа-контрола */
+.alpha-control {
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* Стили для кнопки альфа-канала */
+.channels-bar__btn--alpha {
+  background: linear-gradient(135deg, #252526 0%, #1e1e1e 100%);
+  border-color: #555;
+}
+
+.channels-bar__btn--alpha.channels-bar__btn--active {
+  border-color: #00aaff;
+  background: linear-gradient(135deg, #1a3a5c 0%, #0d2a4a 100%);
+  box-shadow: 0 0 5px rgba(0, 170, 255, 0.3);
+}
+
+.alpha-preview {
+  width: 60px;
+  height: 40px;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #3c3c3c;
+}
+
+.alpha-preview__checkerboard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(45deg, #555 25%, transparent 25%),
+    linear-gradient(-45deg, #555 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #555 75%),
+    linear-gradient(-45deg, transparent 75%, #555 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+  background-color: #888;
+}
+
+.alpha-preview__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #252526;
   transition: opacity 0.2s ease;
+  pointer-events: none;
 }
 
-.color-hex:hover .copy-icon,
-.color-rgb:hover .copy-icon {
-  opacity: 1;
-}
-
-/* Стили для тостов с цветом */
-.toast-success {
-  background: #2e7d32 !important;
-  color: white !important;
-}
-
-.toast-error {
-  background: #c62828 !important;
-  color: white !important;
+.channels-bar__btn--alpha .channel-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
