@@ -37,6 +37,7 @@ type ToolsBarProps = {
   channelPreviews: ChannelPreview[];
   hasImage: boolean;
   hasAlphaChannel: boolean;
+  onLevelsClick?: () => void;
 };
 
 function rgbToHex(r: number, g: number, b: number): string {
@@ -93,6 +94,7 @@ export function ToolsBar({
   channelPreviews,
   hasImage,
   hasAlphaChannel,
+  onLevelsClick,
 }: ToolsBarProps) {
   const [isChannelsCollapsed, setIsChannelsCollapsed] = useState(false);
   const [isInfoCollapsed, setIsInfoCollapsed] = useState(false);
@@ -159,6 +161,22 @@ export function ToolsBar({
             <img src="/pipette-svgrepo-com.svg" alt="Пипетка" />
           </span>
         </button>
+
+        {hasImage && (
+          <>
+            <div className="tools-bar__divider" />
+            <button
+              type="button"
+              className="tools-bar__btn"
+              onClick={onLevelsClick}
+              title="Уровни (градационная коррекция)"
+            >
+              <span className="tool-icon">
+                <img src="public\colour-tuneing-svgrepo-com.svg" alt="Уровни" />
+              </span>
+            </button>
+          </>
+        )}
       </div>
 
       {hasImage && (
@@ -241,7 +259,6 @@ export function ToolsBar({
                   </div>
                 </button>
 
-                {/* Альфа канал (только если есть) */}
                 {hasAlphaChannel && (
                   <button
                     onClick={() => onChannelToggle('alpha')}
