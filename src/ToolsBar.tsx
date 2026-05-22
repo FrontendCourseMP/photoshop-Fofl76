@@ -22,11 +22,9 @@ type PixelInfo = {
   bb: number;
 };
 
-type ChannelPreview = {
-  mode: string;
-  imageData: ImageData;
-  previewUrl: string;
-};
+import type {
+  ChannelPreview,
+} from "./core/image/ImageChannels";
 
 type ToolsBarProps = {
   activeTool: ToolType;
