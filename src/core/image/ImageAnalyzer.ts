@@ -1,12 +1,34 @@
 import type { ImageMeta, SourceFormat } from './types';
 
 export class ImageAnalyzer {
+  /** Подпись глубины для статус-бара по формату и типу изображения. */
+  static resolveBitDepth(
+    format: SourceFormat,
+    isGray: boolean,
+    hasAlpha: boolean
+  ): string {
+    if (format === 'gb7') {
+      return hasAlpha
+        ? '7 бит + маска'
+        : '7 бит';
+    }
+
+    if (isGray) {
+      return hasAlpha
+        ? '8 бит/канал, оттенки серого + Alpha'
+        : '8 бит/канал, оттенки серого';
+    }
+
+    return hasAlpha
+      ? '8 бит/канал, RGBA'
+      : '8 бит/канал, RGB';
+  }
+
   static analyze(imageData: ImageData, format: SourceFormat): ImageMeta {
     const { data, width, height } = imageData;
 
     let hasAlpha = false;
     let isGray = true;
-    let max = 0;
 
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
@@ -21,15 +43,13 @@ export class ImageAnalyzer {
       if (a < 255) {
         hasAlpha = true;
       }
-
-      max = Math.max(max, r, g, b);
     }
 
-    let bitDepth = '8-bit';
-
-    if (max <= 127) {
-      bitDepth = '7-bit';
-    }
+    const bitDepth = ImageAnalyzer.resolveBitDepth(
+      format,
+      isGray,
+      hasAlpha
+    );
 
     return {
       width,

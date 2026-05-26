@@ -13,7 +13,7 @@ import type {
 
 import "./App.css";
 
-import { decodeGb7, encodeGb7 } from "./coder";
+import { encodeGb7 } from "./coder";
 
 import {
   ToolsBar,
@@ -42,6 +42,8 @@ import {
   type LevelsState,
 } from "./core/image/Levels";
 
+import { rgbToCIELAB } from "./core/color/CIELAB";
+
 const MENU_FILE_TYPES =
   ".png,.jpg,.jpeg,.gb7";
 
@@ -51,6 +53,9 @@ type PixelInfo = {
   r: number;
   g: number;
   b: number;
+  labL: number;
+  labA: number;
+  labB: number;
 };
 
 function App() {
@@ -496,7 +501,7 @@ function App() {
       false
     );
 
-    const blob = new Blob([gb7]);
+    const blob = new Blob([new Uint8Array(gb7)]);
 
     const url =
       URL.createObjectURL(blob);
@@ -718,6 +723,11 @@ function App() {
     }
 
     const pixel = model.getPixel(imageX, imageY);
+    const lab = rgbToCIELAB(
+      pixel.r,
+      pixel.g,
+      pixel.b
+    );
 
     setPixelInfo({
       x: imageX,
@@ -725,6 +735,9 @@ function App() {
       r: pixel.r,
       g: pixel.g,
       b: pixel.b,
+      labL: lab.L,
+      labA: lab.a,
+      labB: lab.b,
     });
   };
 
@@ -818,9 +831,7 @@ function App() {
             onToolChange={
               setActiveTool
             }
-            pixelInfo={
-              pixelInfo as never
-            }
+            pixelInfo={pixelInfo}
             activeChannels={
               activeChannels
             }

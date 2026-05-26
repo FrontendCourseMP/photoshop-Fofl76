@@ -1,5 +1,4 @@
 [build]
-  base = "photoshop-Fofl76"
   command = "npm run build"
   publish = "dist"
 

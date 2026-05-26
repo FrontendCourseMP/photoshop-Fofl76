@@ -17,9 +17,9 @@ type PixelInfo = {
   r: number;
   g: number;
   b: number;
-  l: number;
-  a: number;
-  bb: number;
+  labL: number;
+  labA: number;
+  labB: number;
 };
 
 import type {
@@ -119,6 +119,17 @@ export function ToolsBar({
       await copyToClipboard(
         rgbString,
         () => toast.success(`Цвет ${rgbString} скопирован!`),
+        () => toast.error("Не удалось скопировать цвет")
+      );
+    }
+  };
+
+  const handleCopyLab = async () => {
+    if (pixelInfo) {
+      const labString = `L*${pixelInfo.labL} a*${pixelInfo.labA} b*${pixelInfo.labB}`;
+      await copyToClipboard(
+        labString,
+        () => toast.success(`CIELAB ${labString} скопирован!`),
         () => toast.error("Не удалось скопировать цвет")
       );
     }
@@ -326,6 +337,19 @@ export function ToolsBar({
                     <span className="color-label">RGB:</span>
                     <span className="color-value">
                       {pixelInfo.r}, {pixelInfo.g}, {pixelInfo.b}
+                    </span>
+                  </div>
+
+                  <div
+                    className="color-lab"
+                    onClick={handleCopyLab}
+                    title="Нажмите для копирования CIELAB"
+                  >
+                    <span className="color-label">CIELAB:</span>
+                    <span className="color-value">
+                      L*{pixelInfo.labL}{" "}
+                      a*{pixelInfo.labA}{" "}
+                      b*{pixelInfo.labB}
                     </span>
                   </div>
                 </div>

@@ -220,7 +220,8 @@
 .pixel-coords,
 .pixel-lab,
 .color-hex,
-.color-rgb {
+.color-rgb,
+.color-lab {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -233,7 +234,8 @@
 }
 
 .color-hex:hover,
-.color-rgb:hover {
+.color-rgb:hover,
+.color-lab:hover {
   background: #2a2a2a;
 }
 
@@ -531,7 +533,8 @@
 .pixel-coords,
 .pixel-lab,
 .color-hex,
-.color-rgb {
+.color-rgb,
+.color-lab {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -544,7 +547,8 @@
 }
 
 .color-hex:hover,
-.color-rgb:hover {
+.color-rgb:hover,
+.color-lab:hover {
   background: #2a2a2a;
 }
 

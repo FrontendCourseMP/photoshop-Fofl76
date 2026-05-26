@@ -217,11 +217,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 16px;
   font-size: 0.8rem;
-  color: #b0b0b0;
+  color: #ffffff;
   gap: 12px;
   flex-shrink: 0;
+  z-index: 100;
 }
 
 .status-left {
@@ -229,13 +230,13 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #ffffff;
 }
 
 .status-right {
   white-space: nowrap;
-  font-family: monospace;
   font-size: 0.75rem;
-  color: #8b8b8b;
+  color: #ffffff;
 }
 
 .status-controls {
@@ -355,56 +356,24 @@ body {
     height: 28px;
   }
 }
-/* Добавьте или обновите стили для статус-бара */
-
-.status-bar {
-  color: white;
-  padding: 6px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  border-top: 1px solid #1e1e1e;
-  z-index: 100;
-}
-
-.status-left {
-  display: flex;
-  gap: 16px;
-}
-
-.status-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .status-controls {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  color: #ffffff;
 }
 
 .status-dimensions,
 .status-depth,
 .status-channel,
 .status-zoom {
-  font-family: 'Consolas', monospace;
-  font-size: 11px;
-  padding: 2px 4px;
-  border-radius: 3px;
-  background-color: rgba(0, 0, 0, 0.2);
-}
-
-.status-depth {
-  background-color: rgba(0, 0, 0, 0.3);
-  font-weight: 500;
+  color: #ffffff;
+  font-size: 0.75rem;
 }
 
 .separator {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.45);
   margin: 0 2px;
 }
 
