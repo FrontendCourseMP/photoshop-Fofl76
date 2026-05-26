@@ -151,10 +151,10 @@ export function ToolsBar({
             activeTool === "move" ? "is-active" : ""
           }`}
           onClick={() => onToolChange("move")}
-          title="Курсор (перемещение)"
+          title="Перемещение"
         >
           <span className="tool-icon">
-            <img src="/cursor-svgrepo-com.svg" alt="Курсор" />
+            <img src="public\hand-shake-svgrepo-com.svg" alt="Курсор" />
           </span>
         </button>
 

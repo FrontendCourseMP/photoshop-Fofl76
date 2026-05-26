@@ -1,38 +1,21 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import type {
-  ChangeEvent,
-  MouseEvent,
-  WheelEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, MouseEvent, WheelEvent } from "react";
 
 import "./App.css";
 
 import { encodeGb7 } from "./coder";
 
-import {
-  ToolsBar,
-  type ToolType,
-} from "./ToolsBar";
+import { ToolsBar, type ToolType } from "./ToolsBar";
 
 import { Toaster, toast } from "react-hot-toast";
 
+// Правильные пути для вашей структуры (src/core/image/)
 import { ImageFactory } from "./core/image/ImageFactory";
 import { ImageModel } from "./core/image/ImageModel";
 
-import {
-  ImageChannels,
-  type ChannelPreview,
-} from "./core/image/ImageChannels";
+import { ImageChannels, type ChannelPreview } from "./core/image/ImageChannels";
 
-import type {
-  ActiveChannels,
-} from "./core/image/types";
+import type { ActiveChannels } from "./core/image/types";
 
 import { LevelsDialog } from "./components/LevelsDialog";
 import {
@@ -44,8 +27,7 @@ import {
 
 import { rgbToCIELAB } from "./core/color/CIELAB";
 
-const MENU_FILE_TYPES =
-  ".png,.jpg,.jpeg,.gb7";
+const MENU_FILE_TYPES = ".png,.jpg,.jpeg,.gb7";
 
 type PixelInfo = {
   x: number;
@@ -59,34 +41,26 @@ type PixelInfo = {
 };
 
 function App() {
-  const [isFileMenuOpen, setIsFileMenuOpen] =
-    useState(false);
+  const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
 
-  const [statusMessage, setStatusMessage] =
-    useState("Готов к работе");
+  const [statusMessage, setStatusMessage] = useState("Готов к работе");
 
-  const [isDragOver, setIsDragOver] =
-    useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
-  const [activeTool, setActiveTool] =
-    useState<ToolType>("move");
+  const [activeTool, setActiveTool] = useState<ToolType>("move");
 
-  const [pixelInfo, setPixelInfo] =
-    useState<PixelInfo | null>(null);
+  const [pixelInfo, setPixelInfo] = useState<PixelInfo | null>(null);
 
-  const [imageModel, setImageModel] =
-    useState<ImageModel | null>(null);
+  const [imageModel, setImageModel] = useState<ImageModel | null>(null);
 
-  const [channelPreviews, setChannelPreviews] =
-    useState<ChannelPreview[]>([]);
+  const [channelPreviews, setChannelPreviews] = useState<ChannelPreview[]>([]);
 
-  const [activeChannels, setActiveChannels] =
-    useState<ActiveChannels>({
-      red: true,
-      green: true,
-      blue: true,
-      alpha: true,
-    });
+  const [activeChannels, setActiveChannels] = useState<ActiveChannels>({
+    red: true,
+    green: true,
+    blue: true,
+    alpha: true,
+  });
 
   const [scale, setScale] = useState(1);
 
@@ -94,38 +68,29 @@ function App() {
 
   const [panY, setPanY] = useState(0);
 
-  const [isLevelsOpen, setIsLevelsOpen] =
-    useState(false);
+  const [isLevelsOpen, setIsLevelsOpen] = useState(false);
 
-  const [levelsSnapshot, setLevelsSnapshot] =
-    useState<ImageModel | null>(null);
+  const [levelsSnapshot, setLevelsSnapshot] = useState<ImageModel | null>(null);
 
   const [levelsPreviewState, setLevelsPreviewState] =
     useState<LevelsState | null>(null);
 
-  const [levelsPreviewEnabled, setLevelsPreviewEnabled] =
-    useState(true);
+  const [levelsPreviewEnabled, setLevelsPreviewEnabled] = useState(true);
 
-  const [isDragging, setIsDragging] =
-    useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const [dragStart, setDragStart] =
-    useState({
-      x: 0,
-      y: 0,
-    });
+  const [dragStart, setDragStart] = useState({
+    x: 0,
+    y: 0,
+  });
 
-  const menuRef =
-    useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  const inputRef =
-    useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const canvasRef =
-    useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const containerRef =
-    useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const displayModel = useMemo(() => {
     if (!imageModel) {
@@ -138,10 +103,7 @@ function App() {
       }
 
       if (levelsPreviewState) {
-        return applyLevels(
-          levelsSnapshot,
-          levelsPreviewState
-        );
+        return applyLevels(levelsSnapshot, levelsPreviewState);
       }
 
       return levelsSnapshot;
@@ -161,16 +123,10 @@ function App() {
       return null;
     }
 
-    return ImageChannels.apply(
-      displayModel,
-      activeChannels
-    ).toImageData();
+    return ImageChannels.apply(displayModel, activeChannels).toImageData();
   }, [displayModel, activeChannels]);
 
-  const toastMsg = (
-    message: string,
-    type: "success" | "error"
-  ) => {
+  const toastMsg = (message: string, type: "success" | "error") => {
     if (type === "success") {
       toast.success(message);
     } else {
@@ -180,34 +136,22 @@ function App() {
 
   useEffect(() => {
     const close = (e: globalThis.MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(
-          e.target as Node
-        )
-      ) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setIsFileMenuOpen(false);
       }
     };
 
-    document.addEventListener(
-      "mousedown",
-      close
-    );
+    document.addEventListener("mousedown", close);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        close
-      );
+      document.removeEventListener("mousedown", close);
     };
   }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
 
-    const container =
-      containerRef.current;
+    const container = containerRef.current;
 
     if (!canvas || !container) {
       return;
@@ -220,15 +164,9 @@ function App() {
     }
 
     canvas.width = container.clientWidth;
-    canvas.height =
-      container.clientHeight;
+    canvas.height = container.clientHeight;
 
-    ctx.clearRect(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (!renderedImage) {
       return;
@@ -236,34 +174,23 @@ function App() {
 
     ctx.save();
 
-    ctx.translate(
-      canvas.width / 2 + panX,
-      canvas.height / 2 + panY
-    );
+    ctx.translate(canvas.width / 2 + panX, canvas.height / 2 + panY);
 
     ctx.scale(scale, scale);
 
-    const tempCanvas =
-      document.createElement("canvas");
+    const tempCanvas = document.createElement("canvas");
 
-    tempCanvas.width =
-      renderedImage.width;
+    tempCanvas.width = renderedImage.width;
 
-    tempCanvas.height =
-      renderedImage.height;
+    tempCanvas.height = renderedImage.height;
 
-    const tempCtx =
-      tempCanvas.getContext("2d");
+    const tempCtx = tempCanvas.getContext("2d");
 
     if (!tempCtx) {
       return;
     }
 
-    tempCtx.putImageData(
-      renderedImage,
-      0,
-      0
-    );
+    tempCtx.putImageData(renderedImage, 0, 0);
 
     ctx.drawImage(
       tempCanvas,
@@ -272,13 +199,7 @@ function App() {
     );
 
     ctx.restore();
-  }, [
-    renderedImage,
-    displayModel,
-    scale,
-    panX,
-    panY,
-  ]);
+  }, [renderedImage, displayModel, scale, panX, panY]);
 
   const handleImport = () => {
     if (inputRef.current) {
@@ -289,19 +210,13 @@ function App() {
     setIsFileMenuOpen(false);
   };
 
-  const processFile = async (
-    file: File
-  ) => {
+  const processFile = async (file: File) => {
     try {
-      const model =
-        await ImageFactory.load(file);
+      const model = await ImageFactory.load(file);
 
       setImageModel(model);
 
-      const previews =
-        ImageChannels.generatePreviews(
-          model
-        );
+      const previews = ImageChannels.generatePreviews(model);
 
       setChannelPreviews(previews);
 
@@ -311,23 +226,15 @@ function App() {
       setPanX(0);
       setPanY(0);
 
-      toastMsg(
-        `Загружен ${file.name}`,
-        "success"
-      );
+      toastMsg(`Загружен ${file.name}`, "success");
     } catch (error) {
       console.error(error);
 
-      toastMsg(
-        "Ошибка загрузки файла",
-        "error"
-      );
+      toastMsg("Ошибка загрузки файла", "error");
     }
   };
 
-  const handleFileChange = async (
-    e: ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
 
     if (!file) {
@@ -339,26 +246,18 @@ function App() {
     e.target.value = "";
   };
 
-  const handleChannelToggle = (
-    channel: keyof ActiveChannels
-  ) => {
+  const handleChannelToggle = (channel: keyof ActiveChannels) => {
     setActiveChannels((prev) => ({
       ...prev,
       [channel]: !prev[channel],
     }));
   };
 
-  const handleZoomChange = (
-    e: ChangeEvent<HTMLInputElement>
-  ) => {
-    setScale(
-      parseFloat(e.target.value)
-    );
+  const handleZoomChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setScale(parseFloat(e.target.value));
   };
 
-  const handleWheelZoom = (
-    e: WheelEvent<HTMLDivElement>
-  ) => {
+  const handleWheelZoom = (e: WheelEvent<HTMLDivElement>) => {
     if (!renderedImage) {
       return;
     }
@@ -371,24 +270,17 @@ function App() {
       return;
     }
 
-    const rect =
-      canvas.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
 
-    const mouseX =
-      e.clientX - rect.left;
+    const mouseX = e.clientX - rect.left;
 
-    const mouseY =
-      e.clientY - rect.top;
+    const mouseY = e.clientY - rect.top;
 
-    const delta =
-      e.deltaY > 0 ? -0.1 : 0.1;
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
 
     let newScale = scale + delta;
 
-    newScale = Math.min(
-      Math.max(newScale, 0.1),
-      5
-    );
+    newScale = Math.min(Math.max(newScale, 0.1), 5);
 
     if (newScale === scale) {
       return;
@@ -398,23 +290,13 @@ function App() {
 
     const centerY = canvas.height / 2;
 
-    const worldX =
-      (mouseX - centerX - panX) /
-      scale;
+    const worldX = (mouseX - centerX - panX) / scale;
 
-    const worldY =
-      (mouseY - centerY - panY) /
-      scale;
+    const worldY = (mouseY - centerY - panY) / scale;
 
-    const newPanX =
-      mouseX -
-      centerX -
-      worldX * newScale;
+    const newPanX = mouseX - centerX - worldX * newScale;
 
-    const newPanY =
-      mouseY -
-      centerY -
-      worldY * newScale;
+    const newPanY = mouseY - centerY - worldY * newScale;
 
     setScale(newScale);
     setPanX(newPanX);
@@ -426,32 +308,21 @@ function App() {
     setPanX(0);
     setPanY(0);
 
-    toastMsg(
-      "Масштаб сброшен",
-      "success"
-    );
+    toastMsg("Масштаб сброшен", "success");
   };
 
-  const exportCanvas = (
-    type: "png" | "jpg"
-  ) => {
+  const exportCanvas = (type: "png" | "jpg") => {
     if (!renderedImage) {
-      toastMsg(
-        "Нет изображения",
-        "error"
-      );
+      toastMsg("Нет изображения", "error");
 
       return;
     }
 
-    const canvas =
-      document.createElement("canvas");
+    const canvas = document.createElement("canvas");
 
-    canvas.width =
-      renderedImage.width;
+    canvas.width = renderedImage.width;
 
-    canvas.height =
-      renderedImage.height;
+    canvas.height = renderedImage.height;
 
     const ctx = canvas.getContext("2d");
 
@@ -459,55 +330,36 @@ function App() {
       return;
     }
 
-    ctx.putImageData(
-      renderedImage,
-      0,
-      0
-    );
+    ctx.putImageData(renderedImage, 0, 0);
 
-    const link =
-      document.createElement("a");
+    const link = document.createElement("a");
 
     link.href =
       type === "png"
         ? canvas.toDataURL("image/png")
-        : canvas.toDataURL(
-            "image/jpeg",
-            0.92
-          );
+        : canvas.toDataURL("image/jpeg", 0.92);
 
     link.download = `image.${type}`;
 
     link.click();
 
-    toastMsg(
-      `Сохранено как ${type.toUpperCase()}`,
-      "success"
-    );
+    toastMsg(`Сохранено как ${type.toUpperCase()}`, "success");
   };
 
   const exportAsGb7 = () => {
     if (!renderedImage) {
-      toastMsg(
-        "Нет изображения",
-        "error"
-      );
+      toastMsg("Нет изображения", "error");
 
       return;
     }
 
-    const gb7 = encodeGb7(
-      renderedImage,
-      false
-    );
+    const gb7 = encodeGb7(renderedImage, false);
 
     const blob = new Blob([new Uint8Array(gb7)]);
 
-    const url =
-      URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
 
-    const link =
-      document.createElement("a");
+    const link = document.createElement("a");
 
     link.href = url;
 
@@ -517,18 +369,12 @@ function App() {
 
     URL.revokeObjectURL(url);
 
-    toastMsg(
-      "Сохранено как GB7",
-      "success"
-    );
+    toastMsg("Сохранено как GB7", "success");
   };
 
   const openLevelsDialog = () => {
     if (!imageModel) {
-      toastMsg(
-        "Сначала загрузите изображение",
-        "error"
-      );
+      toastMsg("Сначала загрузите изображение", "error");
       return;
     }
 
@@ -560,24 +406,17 @@ function App() {
       return;
     }
 
-    const adjusted = applyLevels(
-      levelsSnapshot,
-      state
-    );
+    const adjusted = applyLevels(levelsSnapshot, state);
 
     setImageModel(adjusted);
 
-    const previews =
-      ImageChannels.generatePreviews(adjusted);
+    const previews = ImageChannels.generatePreviews(adjusted);
 
     setChannelPreviews(previews);
 
     closeLevelsDialog();
 
-    toastMsg(
-      "Уровни применены",
-      "success"
-    );
+    toastMsg("Уровни применены", "success");
   };
 
   const handleLevelsCancel = () => {
@@ -606,23 +445,13 @@ function App() {
       alpha: true,
     });
 
-    toast.success(
-      "Холст очищен"
-    );
+    toast.success("Холст очищен");
 
-    setStatusMessage(
-      "Готов к работе"
-    );
+    setStatusMessage("Готов к работе");
   };
 
-  const handleMouseDown = (
-    e: MouseEvent<HTMLDivElement>
-  ) => {
-    if (
-      activeTool === "move" &&
-      renderedImage &&
-      e.button === 0
-    ) {
+  const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    if (activeTool === "move" && renderedImage && e.button === 0) {
       setIsDragging(true);
 
       setDragStart({
@@ -634,20 +463,11 @@ function App() {
     }
   };
 
-  const handleMouseMove = (
-    e: MouseEvent<HTMLDivElement>
-  ) => {
-    if (
-      isDragging &&
-      activeTool === "move"
-    ) {
-      setPanX(
-        e.clientX - dragStart.x
-      );
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (isDragging && activeTool === "move") {
+      setPanX(e.clientX - dragStart.x);
 
-      setPanY(
-        e.clientY - dragStart.y
-      );
+      setPanY(e.clientY - dragStart.y);
     }
   };
 
@@ -655,12 +475,8 @@ function App() {
     setIsDragging(false);
   };
 
-  const handleCanvasClick = (
-    e: MouseEvent<HTMLCanvasElement>
-  ) => {
-    if (
-      activeTool !== "eyedropper"
-    ) {
+  const handleCanvasClick = (e: MouseEvent<HTMLCanvasElement>) => {
+    if (activeTool !== "eyedropper") {
       return;
     }
 
@@ -676,42 +492,23 @@ function App() {
       return;
     }
 
-    const rect =
-      canvas.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
 
-    const scaleX =
-      canvas.width / rect.width;
+    const scaleX = canvas.width / rect.width;
 
-    const scaleY =
-      canvas.height / rect.height;
+    const scaleY = canvas.height / rect.height;
 
-    const canvasX =
-      (e.clientX - rect.left) *
-      scaleX;
+    const canvasX = (e.clientX - rect.left) * scaleX;
 
-    const canvasY =
-      (e.clientY - rect.top) *
-      scaleY;
+    const canvasY = (e.clientY - rect.top) * scaleY;
 
-    const transformedX =
-      (canvasX -
-        canvas.width / 2 -
-        panX) /
-      scale;
+    const transformedX = (canvasX - canvas.width / 2 - panX) / scale;
 
-    const transformedY =
-      (canvasY -
-        canvas.height / 2 -
-        panY) /
-      scale;
+    const transformedY = (canvasY - canvas.height / 2 - panY) / scale;
 
-    const imageX = Math.floor(
-      transformedX + model.width / 2
-    );
+    const imageX = Math.floor(transformedX + model.width / 2);
 
-    const imageY = Math.floor(
-      transformedY + model.height / 2
-    );
+    const imageY = Math.floor(transformedY + model.height / 2);
 
     if (
       imageX < 0 ||
@@ -723,11 +520,7 @@ function App() {
     }
 
     const pixel = model.getPixel(imageX, imageY);
-    const lab = rgbToCIELAB(
-      pixel.r,
-      pixel.g,
-      pixel.b
-    );
+    const lab = rgbToCIELAB(pixel.r, pixel.g, pixel.b);
 
     setPixelInfo({
       x: imageX,
@@ -744,65 +537,42 @@ function App() {
   return (
     <div className="app">
       <nav className="top-navbar">
-        <div
-          className="menu-container"
-          ref={menuRef}
-        >
+        <div className="menu-container" ref={menuRef}>
           <button
             className="menu-button"
-            onClick={() =>
-              setIsFileMenuOpen(
-                !isFileMenuOpen
-              )
-            }
+            onClick={() => setIsFileMenuOpen(!isFileMenuOpen)}
           >
             Файл
           </button>
 
           {isFileMenuOpen && (
             <div className="dropdown-menu">
-              <button
-                onClick={
-                  handleImport
-                }
-                className="dropdown-item"
-              >
+              <button onClick={handleImport} className="dropdown-item">
                 Импорт
               </button>
 
               <button
-                onClick={() =>
-                  exportCanvas("png")
-                }
+                onClick={() => exportCanvas("png")}
                 className="dropdown-item"
               >
                 Экспорт PNG
               </button>
 
               <button
-                onClick={() =>
-                  exportCanvas("jpg")
-                }
+                onClick={() => exportCanvas("jpg")}
                 className="dropdown-item"
               >
                 Экспорт JPG
               </button>
 
-              <button
-                onClick={
-                  exportAsGb7
-                }
-                className="dropdown-item"
-              >
+              <button onClick={exportAsGb7} className="dropdown-item">
                 Экспорт GB7
               </button>
 
               <div className="dropdown-divider" />
 
               <button
-                onClick={
-                  clearCanvas
-                }
+                onClick={clearCanvas}
                 className="dropdown-item clear-item"
               >
                 Очистить холст
@@ -817,37 +587,20 @@ function App() {
           ref={inputRef}
           type="file"
           accept={MENU_FILE_TYPES}
-          onChange={
-            handleFileChange
-          }
+          onChange={handleFileChange}
           className="visually-hidden"
         />
 
         <div className="workspace__container">
           <ToolsBar
-            activeTool={
-              activeTool
-            }
-            onToolChange={
-              setActiveTool
-            }
+            activeTool={activeTool}
+            onToolChange={setActiveTool}
             pixelInfo={pixelInfo}
-            activeChannels={
-              activeChannels
-            }
-            onChannelToggle={
-              handleChannelToggle
-            }
-            channelPreviews={
-              channelPreviews
-            }
-            hasImage={
-              !!imageModel
-            }
-            hasAlphaChannel={
-              imageModel?.hasAlphaChannel() ??
-              false
-            }
+            activeChannels={activeChannels}
+            onChannelToggle={handleChannelToggle}
+            channelPreviews={channelPreviews}
+            hasImage={!!imageModel}
+            hasAlphaChannel={imageModel?.hasAlphaChannel() ?? false}
             onLevelsClick={openLevelsDialog}
           />
 
@@ -855,60 +608,33 @@ function App() {
             <section
               ref={containerRef}
               className={`canvas-area ${
-                isDragOver
-                  ? "canvas-area--drag-over"
-                  : ""
+                isDragOver ? "canvas-area--drag-over" : ""
               }`}
               onDragOver={(e) => {
                 e.preventDefault();
 
-                setIsDragOver(
-                  true
-                );
+                setIsDragOver(true);
               }}
-              onDragLeave={() =>
-                setIsDragOver(
-                  false
-                )
-              }
+              onDragLeave={() => setIsDragOver(false)}
               onDrop={(e) => {
                 e.preventDefault();
 
-                setIsDragOver(
-                  false
-                );
+                setIsDragOver(false);
 
-                const file =
-                  e
-                    .dataTransfer
-                    .files?.[0];
+                const file = e.dataTransfer.files?.[0];
 
                 if (file) {
-                  processFile(
-                    file
-                  );
+                  processFile(file);
                 }
               }}
-              onMouseDown={
-                handleMouseDown
-              }
-              onMouseMove={
-                handleMouseMove
-              }
-              onMouseUp={
-                handleMouseUp
-              }
-              onMouseLeave={
-                handleMouseUp
-              }
-              onWheel={
-                handleWheelZoom
-              }
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onWheel={handleWheelZoom}
               style={{
                 cursor:
-                  activeTool ===
-                    "move" &&
-                  renderedImage
+                  activeTool === "move" && renderedImage
                     ? isDragging
                       ? "grabbing"
                       : "grab"
@@ -918,51 +644,33 @@ function App() {
               <canvas
                 ref={canvasRef}
                 className="image-canvas"
-                onClick={
-                  handleCanvasClick
-                }
+                onClick={handleCanvasClick}
               />
 
               {!imageModel && (
-                <div className="placeholder">
-                  Загрузите
-                  изображение
-                </div>
+                <div className="placeholder">Загрузите изображение</div>
               )}
             </section>
           </div>
         </div>
       </main>
 
+      {/* ПОЛНЫЙ ФУТЕР С ПРАВИЛЬНЫМ ОТОБРАЖЕНИЕМ ГЛУБИНЫ ЦВЕТА */}
       <footer className="status-bar">
-        <div className="status-left">
-          {statusMessage}
-        </div>
+        <div className="status-left">{statusMessage}</div>
 
         <div className="status-right">
           {imageModel ? (
             <div className="status-controls">
               <span className="status-dimensions">
-                {imageModel.width}×
-                {
-                  imageModel.height
-                }
+                {imageModel.width}×{imageModel.height}
               </span>
 
-              <span className="separator">
-                |
-              </span>
+              <span className="separator">|</span>
 
-              <span className="status-depth">
-                {
-                  imageModel.meta
-                    .bitDepth
-                }
-              </span>
+              <span className="status-depth">{imageModel.meta.bitDepth}</span>
 
-              <span className="separator">
-                |
-              </span>
+              <span className="separator">|</span>
 
               <span className="status-channel">
                 Каналы:{" "}
@@ -972,16 +680,10 @@ function App() {
                 )}
               </span>
 
-              <span className="separator">
-                |
-              </span>
+              <span className="separator">|</span>
 
               <span className="status-zoom">
-                Зум:{" "}
-                {Math.round(
-                  scale * 100
-                )}
-                %
+                Зум: {Math.round(scale * 100)}%
               </span>
 
               <input
@@ -990,18 +692,11 @@ function App() {
                 max="5"
                 step="0.01"
                 value={scale}
-                onChange={
-                  handleZoomChange
-                }
+                onChange={handleZoomChange}
                 className="zoom-slider"
               />
 
-              <button
-                onClick={
-                  resetZoom
-                }
-                className="reset-btn"
-              >
+              <button onClick={resetZoom} className="reset-btn">
                 Сброс
               </button>
             </div>
@@ -1018,9 +713,7 @@ function App() {
           hasAlpha={imageModel.hasAlphaChannel()}
           onApply={handleLevelsApply}
           onCancel={handleLevelsCancel}
-          onPreviewChange={
-            handleLevelsPreviewChange
-          }
+          onPreviewChange={handleLevelsPreviewChange}
         />
       )}
 

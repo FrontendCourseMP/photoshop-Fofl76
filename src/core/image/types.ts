@@ -1,4 +1,4 @@
-export type SourceFormat = 'png' | 'jpg' | 'gb7';
+export type SourceFormat = "png" | "jpg" | "gb7";
 
 export type PixelData = {
   r: number;
@@ -7,14 +7,14 @@ export type PixelData = {
   a: number;
 };
 
-export type ImageMeta = {
+export interface ImageMeta {
   width: number;
   height: number;
   bitDepth: string;
-  colorType: string;
+  colorType: "RGB" | "Grayscale";
   hasAlpha: boolean;
   format: SourceFormat;
-};
+}
 
 export type ActiveChannels = {
   red: boolean;
