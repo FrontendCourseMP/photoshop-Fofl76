@@ -160,21 +160,22 @@ export function ToolsBar({
           </span>
         </button>
 
-        {hasImage && (
-          <>
-            <div className="tools-bar__divider" />
-            <button
-              type="button"
-              className="tools-bar__btn"
-              onClick={onLevelsClick}
-              title="Уровни (градационная коррекция)"
-            >
-              <span className="tool-icon">
-                <img src="public\colour-tuneing-svgrepo-com.svg" alt="Уровни" />
-              </span>
-            </button>
-          </>
-        )}
+        <div className="tools-bar__divider" />
+        <button
+          type="button"
+          className="tools-bar__btn"
+          onClick={onLevelsClick}
+          disabled={!hasImage}
+          title={
+            hasImage
+              ? "Уровни (градационная коррекция)"
+              : "Сначала загрузите изображение"
+          }
+        >
+          <span className="tool-icon">
+            <img src="/colour-tuneing-svgrepo-com.svg" alt="Уровни" />
+          </span>
+        </button>
       </div>
 
       {hasImage && (
@@ -210,7 +211,6 @@ export function ToolsBar({
                     )}
                     <span className="channel-label">
                       {getChannelLabel('red')}
-                      {activeChannels.red && <span className="channel-status">✓</span>}
                     </span>
                   </div>
                 </button>
@@ -231,7 +231,6 @@ export function ToolsBar({
                     )}
                     <span className="channel-label">
                       {getChannelLabel('green')}
-                      {activeChannels.green && <span className="channel-status">✓</span>}
                     </span>
                   </div>
                 </button>
@@ -252,7 +251,6 @@ export function ToolsBar({
                     )}
                     <span className="channel-label">
                       {getChannelLabel('blue')}
-                      {activeChannels.blue && <span className="channel-status">✓</span>}
                     </span>
                   </div>
                 </button>
@@ -270,7 +268,6 @@ export function ToolsBar({
                       </div>
                       <span className="channel-label">
                         {getChannelLabel('alpha')}
-                        {activeChannels.alpha && <span className="channel-status">✓</span>}
                       </span>
                     </div>
                   </button>

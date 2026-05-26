@@ -1,0 +1,172 @@
+.levels-dialog {
+  position: fixed;
+  top: 56px;
+  right: 16px;
+  margin: 0;
+  border: 1px solid #505050;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  background: #2d2d2d;
+  color: #e8e8e8;
+  min-width: 520px;
+  max-width: min(520px, calc(100vw - 32px));
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.levels-dialog::backdrop {
+  display: none;
+}
+
+.levels-dialog__header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.levels-dialog__controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.levels-dialog__field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.levels-dialog__field select {
+  background: #1e1e1e;
+  border: 1px solid #505050;
+  color: #e8e8e8;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.levels-dialog__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.levels-dialog__histogram {
+  height: 160px;
+  background: #1a1a1a;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  padding: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.levels-dialog__slider-track {
+  position: relative;
+  height: 28px;
+  margin: 0 4px 0.5rem;
+  background: linear-gradient(
+    to right,
+    #000 0%,
+    #888 50%,
+    #fff 100%
+  );
+  border-radius: 3px;
+  border: 1px solid #505050;
+  cursor: pointer;
+}
+
+.levels-dialog__handle {
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  z-index: 2;
+}
+
+.levels-dialog__handle:active {
+  cursor: grabbing;
+}
+
+.levels-dialog__handle::after {
+  content: "";
+  display: block;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  margin-left: -7px;
+  margin-top: -2px;
+}
+
+.levels-dialog__handle--black::after {
+  border-top: 12px solid #111;
+  filter: drop-shadow(0 0 1px #fff);
+}
+
+.levels-dialog__handle--midtone::after {
+  border-top: 12px solid #c8a030;
+  filter: drop-shadow(0 0 1px #000);
+}
+
+.levels-dialog__handle--white::after {
+  border-top: 12px solid #f5f5f5;
+  filter: drop-shadow(0 0 1px #000);
+}
+
+.levels-dialog__values {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-bottom: 1rem;
+  padding: 0 4px;
+}
+
+.levels-dialog__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.levels-dialog__actions-right {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.levels-dialog__btn {
+  padding: 0.45rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: 1px solid #505050;
+  transition: background 0.15s;
+}
+
+.levels-dialog__btn--secondary {
+  background: #3c3c3c;
+  color: #e0e0e0;
+}
+
+.levels-dialog__btn--secondary:hover {
+  background: #4a4a4a;
+}
+
+.levels-dialog__btn--primary {
+  background: #0d6efd;
+  border-color: #0a58ca;
+  color: #fff;
+}
+
+.levels-dialog__btn--primary:hover {
+  background: #0b5ed7;
+}

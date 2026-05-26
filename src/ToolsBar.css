@@ -51,6 +51,16 @@
   background: #1a3a5c;
 }
 
+.tools-bar__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tools-bar__btn:disabled:hover {
+  background: #252526;
+  border-color: #3c3c3c;
+}
+
 .tool-icon {
   display: flex;
   align-items: center;
@@ -365,6 +375,16 @@
 .tools-bar__btn.is-active {
   border: 2px solid #007acc;
   background: #1a3a5c;
+}
+
+.tools-bar__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tools-bar__btn:disabled:hover {
+  background: #252526;
+  border-color: #3c3c3c;
 }
 
 .tool-icon {

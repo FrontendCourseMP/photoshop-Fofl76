@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type {
   ChangeEvent,
   MouseEvent,
@@ -27,6 +33,14 @@ import {
 import type {
   ActiveChannels,
 } from "./core/image/types";
+
+import { LevelsDialog } from "./components/LevelsDialog";
+import {
+  applyLevels,
+  cloneLevelsState,
+  createDefaultLevelsState,
+  type LevelsState,
+} from "./core/image/Levels";
 
 const MENU_FILE_TYPES =
   ".png,.jpg,.jpeg,.gb7";
@@ -75,6 +89,18 @@ function App() {
 
   const [panY, setPanY] = useState(0);
 
+  const [isLevelsOpen, setIsLevelsOpen] =
+    useState(false);
+
+  const [levelsSnapshot, setLevelsSnapshot] =
+    useState<ImageModel | null>(null);
+
+  const [levelsPreviewState, setLevelsPreviewState] =
+    useState<LevelsState | null>(null);
+
+  const [levelsPreviewEnabled, setLevelsPreviewEnabled] =
+    useState(true);
+
   const [isDragging, setIsDragging] =
     useState(false);
 
@@ -96,16 +122,45 @@ function App() {
   const containerRef =
     useRef<HTMLDivElement>(null);
 
-  const renderedImage = useMemo(() => {
+  const displayModel = useMemo(() => {
     if (!imageModel) {
       return null;
     }
 
+    if (isLevelsOpen && levelsSnapshot) {
+      if (!levelsPreviewEnabled) {
+        return levelsSnapshot;
+      }
+
+      if (levelsPreviewState) {
+        return applyLevels(
+          levelsSnapshot,
+          levelsPreviewState
+        );
+      }
+
+      return levelsSnapshot;
+    }
+
+    return imageModel;
+  }, [
+    imageModel,
+    isLevelsOpen,
+    levelsSnapshot,
+    levelsPreviewState,
+    levelsPreviewEnabled,
+  ]);
+
+  const renderedImage = useMemo(() => {
+    if (!displayModel) {
+      return null;
+    }
+
     return ImageChannels.apply(
-      imageModel,
+      displayModel,
       activeChannels
     ).toImageData();
-  }, [imageModel, activeChannels]);
+  }, [displayModel, activeChannels]);
 
   const toastMsg = (
     message: string,
@@ -214,6 +269,7 @@ function App() {
     ctx.restore();
   }, [
     renderedImage,
+    displayModel,
     scale,
     panX,
     panY,
@@ -462,7 +518,70 @@ function App() {
     );
   };
 
+  const openLevelsDialog = () => {
+    if (!imageModel) {
+      toastMsg(
+        "Сначала загрузите изображение",
+        "error"
+      );
+      return;
+    }
+
+    const snapshot = imageModel.clone();
+    setLevelsSnapshot(snapshot);
+    setLevelsPreviewState(createDefaultLevelsState());
+    setLevelsPreviewEnabled(true);
+    setIsLevelsOpen(true);
+  };
+
+  const closeLevelsDialog = () => {
+    setIsLevelsOpen(false);
+    setLevelsSnapshot(null);
+    setLevelsPreviewState(null);
+    setLevelsPreviewEnabled(true);
+  };
+
+  const handleLevelsPreviewChange = useCallback(
+    (state: LevelsState, previewOn: boolean) => {
+      setLevelsPreviewState(cloneLevelsState(state));
+      setLevelsPreviewEnabled(previewOn);
+    },
+    []
+  );
+
+  const handleLevelsApply = (state: LevelsState) => {
+    if (!levelsSnapshot) {
+      closeLevelsDialog();
+      return;
+    }
+
+    const adjusted = applyLevels(
+      levelsSnapshot,
+      state
+    );
+
+    setImageModel(adjusted);
+
+    const previews =
+      ImageChannels.generatePreviews(adjusted);
+
+    setChannelPreviews(previews);
+
+    closeLevelsDialog();
+
+    toastMsg(
+      "Уровни применены",
+      "success"
+    );
+  };
+
+  const handleLevelsCancel = () => {
+    closeLevelsDialog();
+  };
+
   const clearCanvas = () => {
+    closeLevelsDialog();
+
     setImageModel(null);
 
     setPixelInfo(null);
@@ -540,7 +659,9 @@ function App() {
       return;
     }
 
-    if (!imageModel) {
+    const model = displayModel ?? imageModel;
+
+    if (!model) {
       return;
     }
 
@@ -580,29 +701,23 @@ function App() {
       scale;
 
     const imageX = Math.floor(
-      transformedX +
-        imageModel.width / 2
+      transformedX + model.width / 2
     );
 
     const imageY = Math.floor(
-      transformedY +
-        imageModel.height / 2
+      transformedY + model.height / 2
     );
 
     if (
       imageX < 0 ||
       imageY < 0 ||
-      imageX >= imageModel.width ||
-      imageY >= imageModel.height
+      imageX >= model.width ||
+      imageY >= model.height
     ) {
       return;
     }
 
-    const pixel =
-      imageModel.getPixel(
-        imageX,
-        imageY
-      );
+    const pixel = model.getPixel(imageX, imageY);
 
     setPixelInfo({
       x: imageX,
@@ -722,6 +837,7 @@ function App() {
               imageModel?.hasAlphaChannel() ??
               false
             }
+            onLevelsClick={openLevelsDialog}
           />
 
           <div className="workspace__content">
@@ -883,6 +999,19 @@ function App() {
           )}
         </div>
       </footer>
+
+      {imageModel && levelsSnapshot && (
+        <LevelsDialog
+          open={isLevelsOpen}
+          sourceImage={levelsSnapshot}
+          hasAlpha={imageModel.hasAlphaChannel()}
+          onApply={handleLevelsApply}
+          onCancel={handleLevelsCancel}
+          onPreviewChange={
+            handleLevelsPreviewChange
+          }
+        />
+      )}
 
       <Toaster position="bottom-left" />
     </div>
