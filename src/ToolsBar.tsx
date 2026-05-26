@@ -3,7 +3,7 @@ import "./ToolsBar.css";
 import toast from "react-hot-toast";
 
 export type ToolType = "move" | "eyedropper";
-export type ChannelMode = 'red' | 'green' | 'blue' | 'alpha';
+export type ChannelMode = "red" | "green" | "blue" | "alpha";
 export type ActiveChannels = {
   red: boolean;
   green: boolean;
@@ -22,9 +22,7 @@ type PixelInfo = {
   labB: number;
 };
 
-import type {
-  ChannelPreview,
-} from "./core/image/ImageChannels";
+import type { ChannelPreview } from "./core/image/ImageChannels";
 
 type ToolsBarProps = {
   activeTool: ToolType;
@@ -61,25 +59,35 @@ async function copyToClipboard(
 }
 
 const getChannelButtonClass = (channel: string, isActive: boolean) => {
-  const baseClass = 'channels-bar__btn';
-  const activeClass = isActive ? 'channels-bar__btn--active' : '';
-  
+  const baseClass = "channels-bar__btn";
+  const activeClass = isActive ? "channels-bar__btn--active" : "";
+
   switch (channel) {
-    case 'red': return `${baseClass} channels-bar__btn--red ${activeClass}`;
-    case 'green': return `${baseClass} channels-bar__btn--green ${activeClass}`;
-    case 'blue': return `${baseClass} channels-bar__btn--blue ${activeClass}`;
-    case 'alpha': return `${baseClass} channels-bar__btn--alpha ${activeClass}`;
-    default: return baseClass;
+    case "red":
+      return `${baseClass} channels-bar__btn--red ${activeClass}`;
+    case "green":
+      return `${baseClass} channels-bar__btn--green ${activeClass}`;
+    case "blue":
+      return `${baseClass} channels-bar__btn--blue ${activeClass}`;
+    case "alpha":
+      return `${baseClass} channels-bar__btn--alpha ${activeClass}`;
+    default:
+      return baseClass;
   }
 };
 
 const getChannelLabel = (channel: string): string => {
   switch (channel) {
-    case 'red': return 'Красный';
-    case 'green': return 'Зеленый';
-    case 'blue': return 'Синий';
-    case 'alpha': return 'Alpha';
-    default: return channel;
+    case "red":
+      return "Красный";
+    case "green":
+      return "Зеленый";
+    case "blue":
+      return "Синий";
+    case "alpha":
+      return "Альфа-канал";
+    default:
+      return channel;
   }
 };
 
@@ -136,8 +144,32 @@ export function ToolsBar({
   };
 
   const getChannelPreview = (channel: string) => {
-    const preview = channelPreviews.find(p => p.mode === channel);
+    const preview = channelPreviews.find((p) => p.mode === channel);
     return preview?.previewUrl;
+  };
+
+  // Функция для получения корректного превью для альфа-канала
+  const getAlphaPreviewContent = () => {
+    const alphaPreview =
+      getChannelPreview("alpha");
+  
+    return (
+      <div className="alpha-preview-wrapper">
+        <div className="alpha-preview-checkerboard" />
+  
+        {alphaPreview && (
+          <img
+            src={alphaPreview}
+            alt="Alpha channel preview"
+            className={`channel-preview alpha-preview-image ${
+              !activeChannels.alpha
+                ? "alpha-preview-image--hidden"
+                : ""
+            }`}
+          />
+        )}
+      </div>
+    );
   };
 
   return (
@@ -192,93 +224,100 @@ export function ToolsBar({
       {hasImage && (
         <>
           <div className="tools-bar__divider" />
-          
+
           <div className="channels-bar">
-            <div 
+            <div
               className="section-header"
               onClick={() => setIsChannelsCollapsed(!isChannelsCollapsed)}
             >
               <h4 className="channels-bar__title">Каналы</h4>
               <button className="collapse-btn">
-                {isChannelsCollapsed ? '▼' : '▲'}
+                {isChannelsCollapsed ? "▼" : "▲"}
               </button>
             </div>
-            
+
             {!isChannelsCollapsed && (
               <div className="channels-bar__buttons">
                 {/* Красный канал */}
                 <button
-                  onClick={() => onChannelToggle('red')}
-                  className={getChannelButtonClass('red', activeChannels.red)}
+                  onClick={() => onChannelToggle("red")}
+                  className={getChannelButtonClass("red", activeChannels.red)}
                   title="Красный канал"
                 >
                   <div className="channels-bar__btn-content">
-                    {getChannelPreview('red') && (
-                      <img 
-                        src={getChannelPreview('red')} 
-                        alt="Red channel preview" 
+                    {getChannelPreview("red") && (
+                      <img
+                        src={getChannelPreview("red")}
+                        alt="Red channel preview"
                         className="channel-preview"
                       />
                     )}
                     <span className="channel-label">
-                      {getChannelLabel('red')}
+                      {getChannelLabel("red")}
                     </span>
                   </div>
                 </button>
 
                 {/* Зеленый канал */}
                 <button
-                  onClick={() => onChannelToggle('green')}
-                  className={getChannelButtonClass('green', activeChannels.green)}
+                  onClick={() => onChannelToggle("green")}
+                  className={getChannelButtonClass(
+                    "green",
+                    activeChannels.green
+                  )}
                   title="Зеленый канал"
                 >
                   <div className="channels-bar__btn-content">
-                    {getChannelPreview('green') && (
-                      <img 
-                        src={getChannelPreview('green')} 
-                        alt="Green channel preview" 
+                    {getChannelPreview("green") && (
+                      <img
+                        src={getChannelPreview("green")}
+                        alt="Green channel preview"
                         className="channel-preview"
                       />
                     )}
                     <span className="channel-label">
-                      {getChannelLabel('green')}
+                      {getChannelLabel("green")}
                     </span>
                   </div>
                 </button>
 
                 {/* Синий канал */}
                 <button
-                  onClick={() => onChannelToggle('blue')}
-                  className={getChannelButtonClass('blue', activeChannels.blue)}
+                  onClick={() => onChannelToggle("blue")}
+                  className={getChannelButtonClass("blue", activeChannels.blue)}
                   title="Синий канал"
                 >
                   <div className="channels-bar__btn-content">
-                    {getChannelPreview('blue') && (
-                      <img 
-                        src={getChannelPreview('blue')} 
-                        alt="Blue channel preview" 
+                    {getChannelPreview("blue") && (
+                      <img
+                        src={getChannelPreview("blue")}
+                        alt="Blue channel preview"
                         className="channel-preview"
                       />
                     )}
                     <span className="channel-label">
-                      {getChannelLabel('blue')}
+                      {getChannelLabel("blue")}
                     </span>
                   </div>
                 </button>
 
+                {/* Альфа-канал - теперь с таким же превью, как у RGB */}
                 {hasAlphaChannel && (
                   <button
-                    onClick={() => onChannelToggle('alpha')}
-                    className={getChannelButtonClass('alpha', activeChannels.alpha)}
+                    onClick={() => onChannelToggle("alpha")}
+                    className={getChannelButtonClass(
+                      "alpha",
+                      activeChannels.alpha
+                    )}
                     title="Альфа-канал (прозрачность)"
                   >
                     <div className="channels-bar__btn-content">
-                      <div className="alpha-preview">
-                        <div className="alpha-preview__checkerboard"></div>
-                        <div className="alpha-preview__overlay" style={{ opacity: activeChannels.alpha ? 0 : 0.5 }}></div>
-                      </div>
+                      {getAlphaPreviewContent()}
                       <span className="channel-label">
-                        {getChannelLabel('alpha')}
+                        {getChannelLabel("alpha")}
+                        {!activeChannels.alpha && (
+                          <span className="channel-status"> (скрыт)</span>
+                        )}
                       </span>
                     </div>
                   </button>
@@ -292,16 +331,16 @@ export function ToolsBar({
       <div className="tools-bar__divider" />
 
       <div className="tools-bar__info">
-        <div 
+        <div
           className="section-header"
           onClick={() => setIsInfoCollapsed(!isInfoCollapsed)}
         >
           <h4>Информация о пикселе</h4>
           <button className="collapse-btn">
-            {isInfoCollapsed ? '▼' : '▲'}
+            {isInfoCollapsed ? "▼" : "▲"}
           </button>
         </div>
-        
+
         {!isInfoCollapsed && (
           <>
             {pixelInfo ? (
@@ -347,9 +386,7 @@ export function ToolsBar({
                   >
                     <span className="color-label">CIELAB:</span>
                     <span className="color-value">
-                      L*{pixelInfo.labL}{" "}
-                      a*{pixelInfo.labA}{" "}
-                      b*{pixelInfo.labB}
+                      L*{pixelInfo.labL} a*{pixelInfo.labA} b*{pixelInfo.labB}
                     </span>
                   </div>
                 </div>

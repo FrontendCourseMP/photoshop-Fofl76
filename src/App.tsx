@@ -123,7 +123,7 @@ function App() {
       return null;
     }
 
-    return ImageChannels.apply(displayModel, activeChannels).toImageData();
+    return ImageChannels.applyWithCheckerboard(displayModel, activeChannels);
   }, [displayModel, activeChannels]);
 
   const toastMsg = (message: string, type: "success" | "error") => {
@@ -312,17 +312,19 @@ function App() {
   };
 
   const exportCanvas = (type: "png" | "jpg") => {
-    if (!renderedImage) {
+    if (!displayModel) {
       toastMsg("Нет изображения", "error");
 
       return;
     }
 
+    const exportImage = ImageChannels.applyRaw(displayModel, activeChannels);
+
     const canvas = document.createElement("canvas");
 
-    canvas.width = renderedImage.width;
+    canvas.width = exportImage.width;
 
-    canvas.height = renderedImage.height;
+    canvas.height = exportImage.height;
 
     const ctx = canvas.getContext("2d");
 
@@ -330,7 +332,7 @@ function App() {
       return;
     }
 
-    ctx.putImageData(renderedImage, 0, 0);
+    ctx.putImageData(exportImage, 0, 0);
 
     const link = document.createElement("a");
 
