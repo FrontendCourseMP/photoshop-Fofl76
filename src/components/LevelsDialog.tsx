@@ -27,6 +27,7 @@ import {
   type LevelsState,
   type LevelsTarget,
 } from "../core/image/Levels";
+import { Modal } from "./Modal";
 import "./LevelsDialog.css";
 
 ChartJS.register(
@@ -76,7 +77,6 @@ export function LevelsDialog({
   onCancel,
   onPreviewChange,
 }: LevelsDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const sliderTrackRef =
     useRef<HTMLDivElement>(null);
   const previewRafRef = useRef<number | null>(null);
@@ -96,19 +96,13 @@ export function LevelsDialog({
     levelsState[activeTarget];
 
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) {
+    if (!open) {
       return;
     }
-    if (open && !dialog.open) {
-      setLevelsState(createDefaultLevelsState());
-      setActiveTarget("master");
-      setLogScale(false);
-      setPreview(true);
-      dialog.show();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
+    setLevelsState(createDefaultLevelsState());
+    setActiveTarget("master");
+    setLogScale(false);
+    setPreview(true);
   }, [open]);
 
   useEffect(() => {
@@ -321,18 +315,13 @@ export function LevelsDialog({
   );
 
   return (
-    <dialog
-      ref={dialogRef}
+    <Modal
+      open={open}
+      title="Уровни"
+      onClose={handleCancel}
+      draggable
       className="levels-dialog"
-      onCancel={(e) => {
-        e.preventDefault();
-        handleCancel();
-      }}
     >
-      <div className="levels-dialog__header">
-        <h2>Уровни</h2>
-      </div>
-
       <div className="levels-dialog__controls-row">
         <label className="levels-dialog__field">
           Канал:
@@ -452,6 +441,6 @@ export function LevelsDialog({
           </button>
         </div>
       </div>
-    </dialog>
+    </Modal>
   );
 }

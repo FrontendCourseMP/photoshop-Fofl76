@@ -19,11 +19,23 @@ import type { ActiveChannels } from "./core/image/types";
 
 import { LevelsDialog } from "./components/LevelsDialog";
 import {
+  ScaleDialog,
+  type ScaleDialogResult,
+} from "./components/ScaleDialog";
+import {
   applyLevels,
   cloneLevelsState,
   createDefaultLevelsState,
   type LevelsState,
 } from "./core/image/Levels";
+import { scaleImageModel } from "./core/image/ImageScaler";
+import {
+  clampViewZoom,
+  computeFitViewZoom,
+  VIEW_ZOOM_MAX,
+  VIEW_ZOOM_MIN,
+  VIEW_ZOOM_PRESETS,
+} from "./core/image/viewZoom";
 
 import { rgbToCIELAB } from "./core/color/CIELAB";
 
@@ -69,6 +81,10 @@ function App() {
   const [panY, setPanY] = useState(0);
 
   const [isLevelsOpen, setIsLevelsOpen] = useState(false);
+
+  const [isScaleOpen, setIsScaleOpen] = useState(false);
+
+  const [zoomPresetKey, setZoomPresetKey] = useState(0);
 
   const [levelsSnapshot, setLevelsSnapshot] = useState<ImageModel | null>(null);
 
@@ -125,6 +141,27 @@ function App() {
 
     return ImageChannels.applyWithCheckerboard(displayModel, activeChannels);
   }, [displayModel, activeChannels]);
+
+  const applyFitViewZoom = useCallback((model: ImageModel) => {
+    const container = containerRef.current;
+    if (!container) {
+      setScale(1);
+      setPanX(0);
+      setPanY(0);
+      return;
+    }
+
+    const fitScale = computeFitViewZoom(
+      model.width,
+      model.height,
+      container.clientWidth,
+      container.clientHeight
+    );
+
+    setScale(fitScale);
+    setPanX(0);
+    setPanY(0);
+  }, []);
 
   const toastMsg = (message: string, type: "success" | "error") => {
     if (type === "success") {
@@ -222,9 +259,9 @@ function App() {
 
       setStatusMessage(file.name);
 
-      setScale(1);
-      setPanX(0);
-      setPanY(0);
+      requestAnimationFrame(() => {
+        applyFitViewZoom(model);
+      });
 
       toastMsg(`Загружен ${file.name}`, "success");
     } catch (error) {
@@ -254,7 +291,17 @@ function App() {
   };
 
   const handleZoomChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setScale(parseFloat(e.target.value));
+    setScale(clampViewZoom(parseFloat(e.target.value)));
+  };
+
+  const handleZoomPresetChange = (
+    e: ChangeEvent<HTMLSelectElement>
+  ) => {
+    const value = parseFloat(e.target.value);
+    if (!Number.isNaN(value)) {
+      setScale(clampViewZoom(value));
+      setZoomPresetKey((k) => k + 1);
+    }
   };
 
   const handleWheelZoom = (e: WheelEvent<HTMLDivElement>) => {
@@ -280,7 +327,7 @@ function App() {
 
     let newScale = scale + delta;
 
-    newScale = Math.min(Math.max(newScale, 0.1), 5);
+    newScale = clampViewZoom(newScale);
 
     if (newScale === scale) {
       return;
@@ -304,11 +351,50 @@ function App() {
   };
 
   const resetZoom = () => {
-    setScale(1);
-    setPanX(0);
-    setPanY(0);
+    if (imageModel) {
+      applyFitViewZoom(imageModel);
+      toastMsg("Масштаб подогнан под холст", "success");
+    } else {
+      setScale(1);
+      setPanX(0);
+      setPanY(0);
+    }
+  };
 
-    toastMsg("Масштаб сброшен", "success");
+  const openScaleDialog = () => {
+    if (!imageModel) {
+      toastMsg("Сначала загрузите изображение", "error");
+      return;
+    }
+
+    setIsScaleOpen(true);
+  };
+
+  const closeScaleDialog = () => {
+    setIsScaleOpen(false);
+  };
+
+  const handleScaleApply = (result: ScaleDialogResult) => {
+    if (!imageModel) {
+      closeScaleDialog();
+      return;
+    }
+
+    const scaled = scaleImageModel(
+      imageModel,
+      result.width,
+      result.height,
+      result.methodId
+    );
+
+    setImageModel(scaled);
+    setChannelPreviews(ImageChannels.generatePreviews(scaled));
+    closeScaleDialog();
+
+    toastMsg(
+      `Размер изменён: ${scaled.width}×${scaled.height}`,
+      "success"
+    );
   };
 
   const exportCanvas = (type: "png" | "jpg") => {
@@ -604,6 +690,7 @@ function App() {
             hasImage={!!imageModel}
             hasAlphaChannel={imageModel?.hasAlphaChannel() ?? false}
             onLevelsClick={openLevelsDialog}
+            onScaleClick={openScaleDialog}
           />
 
           <div className="workspace__content">
@@ -685,13 +772,30 @@ function App() {
               <span className="separator">|</span>
 
               <span className="status-zoom">
-                Зум: {Math.round(scale * 100)}%
+                Масштаб: {Math.round(scale * 100)}%
               </span>
+
+              <select
+                key={zoomPresetKey}
+                className="zoom-preset-select"
+                defaultValue=""
+                onChange={handleZoomPresetChange}
+                title="Быстрый выбор масштаба"
+              >
+                <option value="" disabled>
+                  Пресет
+                </option>
+                {VIEW_ZOOM_PRESETS.map((preset) => (
+                  <option key={preset.label} value={preset.value}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
 
               <input
                 type="range"
-                min="0.1"
-                max="5"
+                min={VIEW_ZOOM_MIN}
+                max={VIEW_ZOOM_MAX}
                 step="0.01"
                 value={scale}
                 onChange={handleZoomChange}
@@ -699,7 +803,7 @@ function App() {
               />
 
               <button onClick={resetZoom} className="reset-btn">
-                Сброс
+                Вписать
               </button>
             </div>
           ) : (
@@ -716,6 +820,15 @@ function App() {
           onApply={handleLevelsApply}
           onCancel={handleLevelsCancel}
           onPreviewChange={handleLevelsPreviewChange}
+        />
+      )}
+
+      {imageModel && (
+        <ScaleDialog
+          open={isScaleOpen}
+          sourceImage={imageModel}
+          onApply={handleScaleApply}
+          onCancel={closeScaleDialog}
         />
       )}
 

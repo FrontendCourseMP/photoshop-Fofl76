@@ -1,28 +1,11 @@
-.levels-dialog {
-  position: fixed;
-  top: 56px;
-  right: 16px;
-  margin: 0;
-  border: 1px solid #505050;
-  border-radius: 8px;
-  padding: 1.25rem 1.5rem;
-  background: #2d2d2d;
-  color: #e8e8e8;
-  min-width: 520px;
-  max-width: min(520px, calc(100vw - 32px));
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+.levels-dialog .app-modal__panel {
+  width: min(520px, calc(100vw - 32px));
+  min-width: min(520px, calc(100vw - 32px));
   z-index: 1000;
-  pointer-events: auto;
 }
 
-.levels-dialog::backdrop {
-  display: none;
-}
-
-.levels-dialog__header h2 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
+.levels-dialog .app-modal__body {
+  padding: 0 1.5rem 1.25rem;
 }
 
 .levels-dialog__controls-row {

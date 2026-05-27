@@ -1,0 +1,78 @@
+.app-modal {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+}
+
+.app-modal--floating {
+  pointer-events: none;
+}
+
+.app-modal--floating .app-modal__panel {
+  pointer-events: auto;
+}
+
+.app-modal--dimmed::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.app-modal--floating::backdrop {
+  background: transparent;
+  pointer-events: none;
+}
+
+.app-modal__panel {
+  position: fixed;
+  width: min(96vw, 520px);
+  background: #2d2d2d;
+  border: 1px solid #505050;
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  color: #e8e8e8;
+  overflow: hidden;
+}
+
+.app-modal__panel--centered {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.app-modal__panel--placed {
+  transform: none;
+}
+
+.app-modal--dimmed .app-modal__panel {
+  position: static;
+  width: min(96vw, 520px);
+  margin: auto;
+}
+
+.app-modal__header {
+  padding: 14px 18px;
+  border-bottom: 1px solid #404040;
+  background: #333;
+  user-select: none;
+}
+
+.app-modal__header--draggable {
+  cursor: grab;
+}
+
+.app-modal__header--dragging {
+  cursor: grabbing;
+}
+
+.app-modal__header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.app-modal__body {
+  padding: 16px 18px 18px;
+}

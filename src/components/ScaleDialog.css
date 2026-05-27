@@ -1,0 +1,101 @@
+.scale-dialog__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scale-dialog__pixels {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #d0d0d0;
+}
+
+.scale-dialog__dims {
+  color: #9a9a9a;
+  font-size: 0.85rem;
+}
+
+.scale-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #c8c8c8;
+}
+
+.scale-dialog__field input,
+.scale-dialog__field select {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background: #1e1e1e;
+  color: #f0f0f0;
+  font-size: 0.9rem;
+}
+
+.scale-dialog__size-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.scale-dialog__unit {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.scale-dialog__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.scale-dialog__tooltip {
+  margin: 0;
+  padding: 10px 12px;
+  background: #252525;
+  border: 1px solid #444;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #b8b8b8;
+}
+
+.scale-dialog__errors {
+  margin: 0;
+  padding-left: 18px;
+  color: #ff8a8a;
+  font-size: 0.82rem;
+}
+
+.scale-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.scale-dialog__btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid #555;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.scale-dialog__btn--secondary {
+  background: #3c3c3c;
+  color: #e8e8e8;
+}
+
+.scale-dialog__btn--primary {
+  background: #4a7fc4;
+  border-color: #5a8fd4;
+  color: #fff;
+}
+
+.scale-dialog__btn--primary:hover {
+  background: #5a8fd4;
+}

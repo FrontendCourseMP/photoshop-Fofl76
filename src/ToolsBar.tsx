@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./ToolsBar.css";
 import toast from "react-hot-toast";
 
-export type ToolType = "move" | "eyedropper";
+export type ToolType = "move" | "eyedropper" | "scale";
 export type ChannelMode = "red" | "green" | "blue" | "alpha";
 export type ActiveChannels = {
   red: boolean;
@@ -34,6 +34,7 @@ type ToolsBarProps = {
   hasImage: boolean;
   hasAlphaChannel: boolean;
   onLevelsClick?: () => void;
+  onScaleClick?: () => void;
 };
 
 function rgbToHex(r: number, g: number, b: number): string {
@@ -101,6 +102,7 @@ export function ToolsBar({
   hasImage,
   hasAlphaChannel,
   onLevelsClick,
+  onScaleClick,
 }: ToolsBarProps) {
   const [isChannelsCollapsed, setIsChannelsCollapsed] = useState(false);
   const [isInfoCollapsed, setIsInfoCollapsed] = useState(false);
@@ -186,7 +188,7 @@ export function ToolsBar({
           title="Перемещение"
         >
           <span className="tool-icon">
-            <img src="public\hand-shake-svgrepo-com.svg" alt="Курсор" />
+            <img src="/hand-shake-svgrepo-com.svg" alt="Курсор" />
           </span>
         </button>
 
@@ -217,6 +219,22 @@ export function ToolsBar({
         >
           <span className="tool-icon">
             <img src="/colour-tuneing-svgrepo-com.svg" alt="Уровни" />
+          </span>
+        </button>
+
+        <button
+          type="button"
+          className="tools-bar__btn"
+          onClick={onScaleClick}
+          disabled={!hasImage}
+          title={
+            hasImage
+              ? "Изменение размера (масштабирование)"
+              : "Сначала загрузите изображение"
+          }
+        >
+          <span className="tool-icon">
+            <img src="/resize-svgrepo-com.svg" alt="Масштаб" />
           </span>
         </button>
       </div>
