@@ -1,0 +1,30 @@
+.dialog-apply-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 6px;
+  color: #f0f0f0;
+  font-size: 0.9rem;
+  pointer-events: all;
+}
+
+.dialog-apply-overlay__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: dialog-apply-spin 0.75s linear infinite;
+}
+
+@keyframes dialog-apply-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

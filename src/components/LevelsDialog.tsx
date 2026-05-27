@@ -27,6 +27,7 @@ import {
   type LevelsState,
   type LevelsTarget,
 } from "../core/image/Levels";
+import { DialogApplyOverlay } from "./DialogApplyOverlay";
 import { Modal } from "./Modal";
 import "./LevelsDialog.css";
 
@@ -42,7 +43,7 @@ type LevelsDialogProps = {
   open: boolean;
   sourceImage: ImageModel;
   hasAlpha: boolean;
-  onApply: (state: LevelsState) => void;
+  onApply: (state: LevelsState) => void | Promise<void>;
   onCancel: () => void;
   onPreviewChange: (
     state: LevelsState,
@@ -91,19 +92,10 @@ export function LevelsDialog({
     useState(true);
   const [dragging, setDragging] =
     useState<HandleKind | null>(null);
+  const [isApplying, setIsApplying] = useState(false);
 
   const activeParams =
     levelsState[activeTarget];
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    setLevelsState(createDefaultLevelsState());
-    setActiveTarget("master");
-    setLogScale(false);
-    setPreview(true);
-  }, [open]);
 
   useEffect(() => {
     if (!open) {
@@ -246,11 +238,28 @@ export function LevelsDialog({
     setLevelsState(createDefaultLevelsState());
   };
 
-  const handleApply = () => {
-    onApply(levelsState);
+  const handleApply = async () => {
+    if (isApplying) {
+      return;
+    }
+
+    setIsApplying(true);
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+
+    try {
+      await onApply(levelsState);
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   const handleCancel = () => {
+    if (isApplying) {
+      return;
+    }
     onCancel();
   };
 
@@ -318,15 +327,21 @@ export function LevelsDialog({
     <Modal
       open={open}
       title="Уровни"
-      onClose={handleCancel}
+      onClose={isApplying ? () => undefined : handleCancel}
       draggable
       className="levels-dialog"
     >
+      <div
+        className={`levels-dialog__panel ${isApplying ? "levels-dialog__panel--busy" : ""}`}
+      >
+        {isApplying && <DialogApplyOverlay message="Применение уровней…" />}
+
       <div className="levels-dialog__controls-row">
         <label className="levels-dialog__field">
           Канал:
           <select
             value={activeTarget}
+            disabled={isApplying}
             onChange={(e) =>
               setActiveTarget(
                 e.target.value as LevelsTarget
@@ -348,6 +363,7 @@ export function LevelsDialog({
           <input
             type="checkbox"
             checked={logScale}
+            disabled={isApplying}
             onChange={(e) =>
               setLogScale(e.target.checked)
             }
@@ -359,6 +375,7 @@ export function LevelsDialog({
           <input
             type="checkbox"
             checked={preview}
+            disabled={isApplying}
             onChange={(e) =>
               handlePreviewToggle(e.target.checked)
             }
@@ -421,6 +438,7 @@ export function LevelsDialog({
           type="button"
           className="levels-dialog__btn levels-dialog__btn--secondary"
           onClick={handleReset}
+          disabled={isApplying}
         >
           Сброс
         </button>
@@ -429,17 +447,20 @@ export function LevelsDialog({
             type="button"
             className="levels-dialog__btn levels-dialog__btn--secondary"
             onClick={handleCancel}
+            disabled={isApplying}
           >
             Отмена
           </button>
           <button
             type="button"
             className="levels-dialog__btn levels-dialog__btn--primary"
-            onClick={handleApply}
+            onClick={() => void handleApply()}
+            disabled={isApplying}
           >
-            Применить
+            {isApplying ? "Применение…" : "Применить"}
           </button>
         </div>
+      </div>
       </div>
     </Modal>
   );

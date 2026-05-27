@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ImageModel } from "../core/image/ImageModel";
 import { formatMegapixels } from "../core/image/ImageScaler";
 import {
@@ -6,6 +6,7 @@ import {
   INTERPOLATION_METHODS,
   type InterpolationMethodId,
 } from "../core/image/interpolation";
+import { DialogApplyOverlay } from "./DialogApplyOverlay";
 import { Modal } from "./Modal";
 import "./ScaleDialog.css";
 
@@ -20,7 +21,7 @@ export type ScaleDialogResult = {
 type ScaleDialogProps = {
   open: boolean;
   sourceImage: ImageModel;
-  onApply: (result: ScaleDialogResult) => void;
+  onApply: (result: ScaleDialogResult) => void | Promise<void>;
   onCancel: () => void;
 };
 
@@ -40,27 +41,15 @@ export function ScaleDialog({
   onCancel,
 }: ScaleDialogProps) {
   const [unit, setUnit] = useState<ScaleUnit>("percent");
-  const [widthValue, setWidthValue] = useState(String(sourceImage.width));
-  const [heightValue, setHeightValue] = useState(String(sourceImage.height));
+  const [widthValue, setWidthValue] = useState("100");
+  const [heightValue, setHeightValue] = useState("100");
   const [lockAspect, setLockAspect] = useState(true);
   const [methodId, setMethodId] =
     useState<InterpolationMethodId>("bilinear");
   const [errors, setErrors] = useState<string[]>([]);
+  const [isApplying, setIsApplying] = useState(false);
 
   const aspectRatio = sourceImage.width / sourceImage.height;
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    setUnit("percent");
-    setWidthValue("100");
-    setHeightValue("100");
-    setLockAspect(true);
-    setMethodId("bilinear");
-    setErrors([]);
-  }, [open, sourceImage.width, sourceImage.height]);
 
   const targetDimensions = useMemo(() => {
     const widthNum = Number(widthValue);
@@ -202,10 +191,22 @@ export function ScaleDialog({
     setErrors([]);
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     const result = validate();
-    if (result) {
-      onApply(result);
+    if (!result || isApplying) {
+      return;
+    }
+
+    setIsApplying(true);
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+
+    try {
+      await onApply(result);
+    } finally {
+      setIsApplying(false);
     }
   };
 
@@ -218,11 +219,16 @@ export function ScaleDialog({
     <Modal
       open={open}
       title="Изменение размера изображения"
-      onClose={onCancel}
+      onClose={isApplying ? () => undefined : onCancel}
       className="scale-dialog"
       draggable
     >
-      <div className="scale-dialog__content">
+      <div
+        className={`scale-dialog__content ${isApplying ? "scale-dialog__content--busy" : ""}`}
+      >
+        {isApplying && (
+          <DialogApplyOverlay message="Изменение размера…" />
+        )}
         <p className="scale-dialog__pixels">
           Пикселей: <strong>{sourceMp}</strong> → <strong>{targetMp}</strong>
           {targetDimensions && (
@@ -237,6 +243,7 @@ export function ScaleDialog({
           Единицы:
           <select
             value={unit}
+            disabled={isApplying}
             onChange={(e) =>
               handleUnitChange(e.target.value as ScaleUnit)
             }
@@ -254,6 +261,7 @@ export function ScaleDialog({
               min={unit === "pixels" ? MIN_PIXEL : MIN_PERCENT}
               max={unit === "pixels" ? MAX_PIXEL : MAX_PERCENT}
               value={widthValue}
+              disabled={isApplying}
               onChange={(e) => handleWidthChange(e.target.value)}
             />
             <span className="scale-dialog__unit">
@@ -268,6 +276,7 @@ export function ScaleDialog({
               min={unit === "pixels" ? MIN_PIXEL : MIN_PERCENT}
               max={unit === "pixels" ? MAX_PIXEL : MAX_PERCENT}
               value={heightValue}
+              disabled={isApplying}
               onChange={(e) => handleHeightChange(e.target.value)}
             />
             <span className="scale-dialog__unit">
@@ -280,6 +289,7 @@ export function ScaleDialog({
           <input
             type="checkbox"
             checked={lockAspect}
+            disabled={isApplying}
             onChange={(e) => setLockAspect(e.target.checked)}
           />
           Сохранять пропорции (
@@ -290,6 +300,7 @@ export function ScaleDialog({
           Интерполяция:
           <select
             value={methodId}
+            disabled={isApplying}
             onChange={(e) =>
               setMethodId(e.target.value as InterpolationMethodId)
             }
@@ -319,15 +330,17 @@ export function ScaleDialog({
             type="button"
             className="scale-dialog__btn scale-dialog__btn--secondary"
             onClick={onCancel}
+            disabled={isApplying}
           >
             Отмена
           </button>
           <button
             type="button"
             className="scale-dialog__btn scale-dialog__btn--primary"
-            onClick={handleApply}
+            onClick={() => void handleApply()}
+            disabled={isApplying}
           >
-            Применить
+            {isApplying ? "Применение…" : "Применить"}
           </button>
         </div>
       </div>

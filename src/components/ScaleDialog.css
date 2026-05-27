@@ -1,4 +1,5 @@
 .scale-dialog__content {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -98,4 +99,19 @@
 
 .scale-dialog__btn--primary:hover {
   background: #5a8fd4;
+}
+
+.scale-dialog__content--busy {
+  pointer-events: none;
+}
+
+.scale-dialog__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.scale-dialog__field input:disabled,
+.scale-dialog__field select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

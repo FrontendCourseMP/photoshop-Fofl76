@@ -17,6 +17,7 @@ import { ImageChannels, type ChannelPreview } from "./core/image/ImageChannels";
 
 import type { ActiveChannels } from "./core/image/types";
 
+import { DialogApplyOverlay } from "./components/DialogApplyOverlay";
 import { LevelsDialog } from "./components/LevelsDialog";
 import {
   ScaleDialog,
@@ -59,6 +60,8 @@ function App() {
 
   const [isDragOver, setIsDragOver] = useState(false);
 
+  const [isImageLoading, setIsImageLoading] = useState(false);
+
   const [activeTool, setActiveTool] = useState<ToolType>("move");
 
   const [pixelInfo, setPixelInfo] = useState<PixelInfo | null>(null);
@@ -83,6 +86,8 @@ function App() {
   const [isLevelsOpen, setIsLevelsOpen] = useState(false);
 
   const [isScaleOpen, setIsScaleOpen] = useState(false);
+
+  const [scaleDialogKey, setScaleDialogKey] = useState(0);
 
   const [zoomPresetKey, setZoomPresetKey] = useState(0);
 
@@ -239,6 +244,10 @@ function App() {
   }, [renderedImage, displayModel, scale, panX, panY]);
 
   const handleImport = () => {
+    if (isImageLoading) {
+      return;
+    }
+
     if (inputRef.current) {
       inputRef.current.value = "";
       inputRef.current.click();
@@ -248,14 +257,22 @@ function App() {
   };
 
   const processFile = async (file: File) => {
+    if (isImageLoading) {
+      return;
+    }
+
+    setIsImageLoading(true);
+    setStatusMessage(`Загрузка: ${file.name}`);
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+
     try {
       const model = await ImageFactory.load(file);
 
       setImageModel(model);
-
-      const previews = ImageChannels.generatePreviews(model);
-
-      setChannelPreviews(previews);
+      setChannelPreviews([]);
 
       setStatusMessage(file.name);
 
@@ -263,11 +280,17 @@ function App() {
         applyFitViewZoom(model);
       });
 
+      const previews = ImageChannels.generatePreviews(model);
+      setChannelPreviews(previews);
+
       toastMsg(`Загружен ${file.name}`, "success");
     } catch (error) {
       console.error(error);
 
+      setStatusMessage("Готов к работе");
       toastMsg("Ошибка загрузки файла", "error");
+    } finally {
+      setIsImageLoading(false);
     }
   };
 
@@ -367,6 +390,7 @@ function App() {
       return;
     }
 
+    setScaleDialogKey((k) => k + 1);
     setIsScaleOpen(true);
   };
 
@@ -374,27 +398,33 @@ function App() {
     setIsScaleOpen(false);
   };
 
-  const handleScaleApply = (result: ScaleDialogResult) => {
+  const handleScaleApply = async (result: ScaleDialogResult) => {
     if (!imageModel) {
       closeScaleDialog();
       return;
     }
 
-    const scaled = scaleImageModel(
-      imageModel,
-      result.width,
-      result.height,
-      result.methodId
-    );
+    try {
+      const scaled = scaleImageModel(
+        imageModel,
+        result.width,
+        result.height,
+        result.methodId
+      );
 
-    setImageModel(scaled);
-    setChannelPreviews(ImageChannels.generatePreviews(scaled));
-    closeScaleDialog();
+      setImageModel(scaled);
+      setChannelPreviews(ImageChannels.generatePreviews(scaled));
+      closeScaleDialog();
 
-    toastMsg(
-      `Размер изменён: ${scaled.width}×${scaled.height}`,
-      "success"
-    );
+      toastMsg(
+        `Размер изменён: ${scaled.width}×${scaled.height}`,
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+      toastMsg("Не удалось изменить размер", "error");
+      throw error;
+    }
   };
 
   const exportCanvas = (type: "png" | "jpg") => {
@@ -488,23 +518,29 @@ function App() {
     []
   );
 
-  const handleLevelsApply = (state: LevelsState) => {
+  const handleLevelsApply = async (state: LevelsState) => {
     if (!levelsSnapshot) {
       closeLevelsDialog();
       return;
     }
 
-    const adjusted = applyLevels(levelsSnapshot, state);
+    try {
+      const adjusted = applyLevels(levelsSnapshot, state);
 
-    setImageModel(adjusted);
+      setImageModel(adjusted);
 
-    const previews = ImageChannels.generatePreviews(adjusted);
+      const previews = ImageChannels.generatePreviews(adjusted);
 
-    setChannelPreviews(previews);
+      setChannelPreviews(previews);
 
-    closeLevelsDialog();
+      closeLevelsDialog();
 
-    toastMsg("Уровни применены", "success");
+      toastMsg("Уровни применены", "success");
+    } catch (error) {
+      console.error(error);
+      toastMsg("Не удалось применить уровни", "error");
+      throw error;
+    }
   };
 
   const handleLevelsCancel = () => {
@@ -698,8 +734,11 @@ function App() {
               ref={containerRef}
               className={`canvas-area ${
                 isDragOver ? "canvas-area--drag-over" : ""
-              }`}
+              } ${isImageLoading ? "canvas-area--loading" : ""}`}
               onDragOver={(e) => {
+                if (isImageLoading) {
+                  return;
+                }
                 e.preventDefault();
 
                 setIsDragOver(true);
@@ -710,10 +749,14 @@ function App() {
 
                 setIsDragOver(false);
 
+                if (isImageLoading) {
+                  return;
+                }
+
                 const file = e.dataTransfer.files?.[0];
 
                 if (file) {
-                  processFile(file);
+                  void processFile(file);
                 }
               }}
               onMouseDown={handleMouseDown}
@@ -736,8 +779,12 @@ function App() {
                 onClick={handleCanvasClick}
               />
 
-              {!imageModel && (
+              {!imageModel && !isImageLoading && (
                 <div className="placeholder">Загрузите изображение</div>
+              )}
+
+              {isImageLoading && (
+                <DialogApplyOverlay message="Загрузка изображения…" />
               )}
             </section>
           </div>
@@ -825,6 +872,7 @@ function App() {
 
       {imageModel && (
         <ScaleDialog
+          key={scaleDialogKey}
           open={isScaleOpen}
           sourceImage={imageModel}
           onApply={handleScaleApply}

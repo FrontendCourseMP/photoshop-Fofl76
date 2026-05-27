@@ -8,6 +8,25 @@
   padding: 0 1.5rem 1.25rem;
 }
 
+.levels-dialog__panel {
+  position: relative;
+}
+
+.levels-dialog__panel--busy {
+  pointer-events: none;
+}
+
+.levels-dialog__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.levels-dialog__field select:disabled,
+.levels-dialog__checkbox input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .levels-dialog__controls-row {
   display: flex;
   flex-wrap: wrap;

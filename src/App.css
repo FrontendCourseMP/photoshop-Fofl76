@@ -192,6 +192,10 @@ body {
   box-shadow: inset 0 0 0 2px #3b82f6;
 }
 
+.canvas-area--loading {
+  pointer-events: none;
+}
+
 .image-canvas {
   width: 100%;
   height: 100%;
