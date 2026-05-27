@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useThrottledCallback } from "../hooks/useThrottledCallback";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -80,7 +81,10 @@ export function LevelsDialog({
 }: LevelsDialogProps) {
   const sliderTrackRef =
     useRef<HTMLDivElement>(null);
-  const previewRafRef = useRef<number | null>(null);
+  const levelsStateRef = useRef<LevelsState>(
+    createDefaultLevelsState()
+  );
+  const previewEnabledRef = useRef(true);
 
   const [levelsState, setLevelsState] =
     useState<LevelsState>(createDefaultLevelsState);
@@ -98,33 +102,44 @@ export function LevelsDialog({
     levelsState[activeTarget];
 
   useEffect(() => {
+    levelsStateRef.current = levelsState;
+    previewEnabledRef.current = preview;
+  }, [levelsState, preview]);
+
+  const { throttled: schedulePreview, flush: flushPreview } =
+    useThrottledCallback(
+      (state: LevelsState, previewOn: boolean) => {
+        onPreviewChange(state, previewOn);
+      },
+      120
+    );
+
+  const emitPreviewNow = useCallback(() => {
+    onPreviewChange(
+      levelsStateRef.current,
+      previewEnabledRef.current
+    );
+  }, [onPreviewChange]);
+
+  useEffect(() => {
     if (!open) {
       return;
     }
-
-    if (previewRafRef.current !== null) {
-      cancelAnimationFrame(previewRafRef.current);
-    }
-
-    previewRafRef.current = requestAnimationFrame(() => {
-      previewRafRef.current = null;
-      onPreviewChange(levelsState, preview);
-    });
-
-    return () => {
-      if (previewRafRef.current !== null) {
-        cancelAnimationFrame(previewRafRef.current);
-      }
-    };
-  }, [open, levelsState, preview, onPreviewChange]);
+    emitPreviewNow();
+  }, [open, emitPreviewNow]);
 
   useEffect(() => {
-    return () => {
-      if (previewRafRef.current !== null) {
-        cancelAnimationFrame(previewRafRef.current);
-      }
-    };
-  }, []);
+    if (!open || dragging !== null) {
+      return;
+    }
+    schedulePreview(levelsState, preview);
+  }, [
+    open,
+    levelsState,
+    preview,
+    dragging,
+    schedulePreview,
+  ]);
 
   const histogram = useMemo(() => {
     return computeHistogram(
@@ -232,10 +247,16 @@ export function LevelsDialog({
     checked: boolean
   ) => {
     setPreview(checked);
+    flushPreview();
+    onPreviewChange(levelsStateRef.current, checked);
   };
 
   const handleReset = () => {
-    setLevelsState(createDefaultLevelsState());
+    const next = createDefaultLevelsState();
+    setLevelsState(next);
+    levelsStateRef.current = next;
+    flushPreview();
+    onPreviewChange(next, previewEnabledRef.current);
   };
 
   const handleApply = async () => {
@@ -300,7 +321,14 @@ export function LevelsDialog({
       }
     };
 
-    const onUp = () => setDragging(null);
+    const onUp = () => {
+      setDragging(null);
+      flushPreview();
+      onPreviewChange(
+        levelsStateRef.current,
+        previewEnabledRef.current
+      );
+    };
 
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -308,7 +336,7 @@ export function LevelsDialog({
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [dragging, updateParams]);
+  }, [dragging, updateParams, flushPreview, onPreviewChange]);
 
   const handlePos = (value: number) =>
     `${(value / 255) * 100}%`;

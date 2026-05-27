@@ -1,5 +1,9 @@
 import { buildLevelsLUT, type LUT } from "./LUT";
 import { ImageModel } from "./ImageModel";
+import {
+  applyLevelsToBuffer,
+  type LevelsStateWire,
+} from "./processing/levelsPixels";
 
 export type LevelsTarget =
   | "master"
@@ -35,6 +39,15 @@ export function createDefaultLevelsState(): LevelsState {
     green: { ...params },
     blue: { ...params },
     alpha: { ...params },
+  };
+}
+
+export function levelsStateToWire(state: LevelsState): LevelsStateWire {
+  return {
+    red: state.red,
+    green: state.green,
+    blue: state.blue,
+    alpha: state.alpha,
   };
 }
 
@@ -92,58 +105,13 @@ export function paramsToLUT(
   );
 }
 
-function isDefaultParams(
-  p: LevelsChannelParams
-): boolean {
-  return (
-    p.inputBlack ===
-      DEFAULT_CHANNEL_PARAMS.inputBlack &&
-    p.inputWhite ===
-      DEFAULT_CHANNEL_PARAMS.inputWhite &&
-    p.midtone === DEFAULT_CHANNEL_PARAMS.midtone
-  );
-}
-
 export function applyLevels(
   image: ImageModel,
   state: LevelsState
 ): ImageModel {
-  const lutR = isDefaultParams(state.red)
-    ? null
-    : paramsToLUT(state.red);
-  const lutG = isDefaultParams(state.green)
-    ? null
-    : paramsToLUT(state.green);
-  const lutB = isDefaultParams(state.blue)
-    ? null
-    : paramsToLUT(state.blue);
-  const lutA = isDefaultParams(state.alpha)
-    ? null
-    : paramsToLUT(state.alpha);
-
-  if (!lutR && !lutG && !lutB && !lutA) {
-    return image.clone();
-  }
-
-  const result = image.clone();
-  const data = result.getRawData();
-
-  for (let i = 0; i < data.length; i += 4) {
-    if (lutR) {
-      data[i] = lutR[data[i]];
-    }
-    if (lutG) {
-      data[i + 1] = lutG[data[i + 1]];
-    }
-    if (lutB) {
-      data[i + 2] = lutB[data[i + 2]];
-    }
-    if (lutA) {
-      data[i + 3] = lutA[data[i + 3]];
-    }
-  }
-
-  return result;
+  const wire = levelsStateToWire(state);
+  const pixels = applyLevelsToBuffer(image.getRawData(), wire);
+  return new ImageModel(image.width, image.height, image.meta, pixels);
 }
 
 export function clampChannelParams(

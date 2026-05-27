@@ -37,6 +37,32 @@ export class ImageChannels {
     return result.toImageData();
   }
 
+  /** Быстрый путь для предпросмотра (без шахматки). */
+  static toImageDataForPreview(
+    image: ImageModel,
+    channels: ActiveChannels
+  ): ImageData {
+    const data = image.getRawData();
+    const out = new Uint8ClampedArray(data);
+
+    for (let i = 0; i < out.length; i += 4) {
+      if (!channels.red) {
+        out[i] = 0;
+      }
+      if (!channels.green) {
+        out[i + 1] = 0;
+      }
+      if (!channels.blue) {
+        out[i + 2] = 0;
+      }
+      if (!channels.alpha) {
+        out[i + 3] = 255;
+      }
+    }
+
+    return new ImageData(out, image.width, image.height);
+  }
+
   /**
    * Изображение С шахматным фоном
    * Используется только для UI canvas

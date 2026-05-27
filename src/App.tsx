@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChangeEvent, MouseEvent, WheelEvent } from "react";
 
 import "./App.css";
@@ -24,12 +24,15 @@ import {
   type ScaleDialogResult,
 } from "./components/ScaleDialog";
 import {
-  applyLevels,
   cloneLevelsState,
   createDefaultLevelsState,
+  levelsStateToWire,
   type LevelsState,
 } from "./core/image/Levels";
-import { scaleImageModel } from "./core/image/ImageScaler";
+import {
+  imageWorkerClient,
+  pixelsToImageModel,
+} from "./core/image/ImageWorkerClient";
 import {
   clampViewZoom,
   computeFitViewZoom,
@@ -113,39 +116,139 @@ function App() {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const displayModel = useMemo(() => {
+  const [canvasImage, setCanvasImage] = useState<ImageData | null>(null);
+
+  const renderJobRef = useRef(0);
+
+  const toastMsg = useCallback((message: string, type: "success" | "error") => {
+    if (type === "success") {
+      toast.success(message);
+    } else {
+      toast.error(message);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLevelsOpen || !levelsSnapshot) {
+      void imageWorkerClient.clearLevelsSource();
+      return;
+    }
+
+    void imageWorkerClient.setLevelsSource(
+      levelsSnapshot.getRawData(),
+      levelsSnapshot.width,
+      levelsSnapshot.height
+    );
+
+    return () => {
+      void imageWorkerClient.clearLevelsSource();
+    };
+  }, [isLevelsOpen, levelsSnapshot]);
+
+  useEffect(() => {
     if (!imageModel) {
-      return null;
+      return;
     }
 
-    if (isLevelsOpen && levelsSnapshot) {
-      if (!levelsPreviewEnabled) {
-        return levelsSnapshot;
+    const jobId = ++renderJobRef.current;
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        let pixels: Uint8ClampedArray;
+        let width: number;
+        let height: number;
+        const meta = imageModel.meta;
+
+        if (isLevelsOpen && levelsSnapshot) {
+          if (!levelsPreviewEnabled) {
+            pixels = new Uint8ClampedArray(levelsSnapshot.getRawData());
+            width = levelsSnapshot.width;
+            height = levelsSnapshot.height;
+          } else if (levelsPreviewState) {
+            const preview = await imageWorkerClient.applyLevelsPreview(
+              levelsStateToWire(levelsPreviewState)
+            );
+            if (cancelled || jobId !== renderJobRef.current) {
+              return;
+            }
+            pixels = preview.pixels;
+            width = preview.width;
+            height = preview.height;
+          } else {
+            pixels = new Uint8ClampedArray(levelsSnapshot.getRawData());
+            width = levelsSnapshot.width;
+            height = levelsSnapshot.height;
+          }
+        } else {
+          pixels = imageModel.getRawData();
+          width = imageModel.width;
+          height = imageModel.height;
+        }
+
+        const channelPixels = await imageWorkerClient.applyChannels(
+          pixels,
+          width,
+          height,
+          activeChannels
+        );
+
+        if (cancelled || jobId !== renderJobRef.current) {
+          return;
+        }
+
+        const useCheckerboard =
+          !isLevelsOpen &&
+          width * height <= 512 * 512 &&
+          imageModel.hasAlphaChannel() &&
+          activeChannels.alpha;
+
+        let imageData: ImageData;
+
+        if (useCheckerboard) {
+          const tempModel = new ImageModel(
+            width,
+            height,
+            meta,
+            channelPixels
+          );
+          imageData = ImageChannels.applyWithCheckerboard(
+            tempModel,
+            activeChannels
+          );
+        } else {
+          imageData = new ImageData(
+            new Uint8ClampedArray(channelPixels),
+            width,
+            height
+          );
+        }
+
+        if (!cancelled && jobId === renderJobRef.current) {
+          setCanvasImage(imageData);
+        }
+      } catch (error) {
+        console.error(error);
+        if (!cancelled && jobId === renderJobRef.current) {
+          toastMsg("Ошибка отрисовки изображения", "error");
+        }
       }
+    };
 
-      if (levelsPreviewState) {
-        return applyLevels(levelsSnapshot, levelsPreviewState);
-      }
+    void run();
 
-      return levelsSnapshot;
-    }
-
-    return imageModel;
+    return () => {
+      cancelled = true;
+    };
   }, [
     imageModel,
     isLevelsOpen,
     levelsSnapshot,
     levelsPreviewState,
     levelsPreviewEnabled,
+    activeChannels,
+    toastMsg,
   ]);
-
-  const renderedImage = useMemo(() => {
-    if (!displayModel) {
-      return null;
-    }
-
-    return ImageChannels.applyWithCheckerboard(displayModel, activeChannels);
-  }, [displayModel, activeChannels]);
 
   const applyFitViewZoom = useCallback((model: ImageModel) => {
     const container = containerRef.current;
@@ -167,14 +270,6 @@ function App() {
     setPanX(0);
     setPanY(0);
   }, []);
-
-  const toastMsg = (message: string, type: "success" | "error") => {
-    if (type === "success") {
-      toast.success(message);
-    } else {
-      toast.error(message);
-    }
-  };
 
   useEffect(() => {
     const close = (e: globalThis.MouseEvent) => {
@@ -210,7 +305,7 @@ function App() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (!renderedImage) {
+    if (!canvasImage) {
       return;
     }
 
@@ -222,9 +317,9 @@ function App() {
 
     const tempCanvas = document.createElement("canvas");
 
-    tempCanvas.width = renderedImage.width;
+    tempCanvas.width = canvasImage.width;
 
-    tempCanvas.height = renderedImage.height;
+    tempCanvas.height = canvasImage.height;
 
     const tempCtx = tempCanvas.getContext("2d");
 
@@ -232,16 +327,16 @@ function App() {
       return;
     }
 
-    tempCtx.putImageData(renderedImage, 0, 0);
+    tempCtx.putImageData(canvasImage, 0, 0);
 
     ctx.drawImage(
       tempCanvas,
-      -renderedImage.width / 2,
-      -renderedImage.height / 2
+      -canvasImage.width / 2,
+      -canvasImage.height / 2
     );
 
     ctx.restore();
-  }, [renderedImage, displayModel, scale, panX, panY]);
+  }, [canvasImage, scale, panX, panY]);
 
   const handleImport = () => {
     if (isImageLoading) {
@@ -262,6 +357,7 @@ function App() {
     }
 
     setIsImageLoading(true);
+    setCanvasImage(null);
     setStatusMessage(`Загрузка: ${file.name}`);
 
     await new Promise<void>((resolve) => {
@@ -280,7 +376,7 @@ function App() {
         applyFitViewZoom(model);
       });
 
-      const previews = ImageChannels.generatePreviews(model);
+      const previews = await imageWorkerClient.generatePreviews(model);
       setChannelPreviews(previews);
 
       toastMsg(`Загружен ${file.name}`, "success");
@@ -328,7 +424,7 @@ function App() {
   };
 
   const handleWheelZoom = (e: WheelEvent<HTMLDivElement>) => {
-    if (!renderedImage) {
+    if (!canvasImage) {
       return;
     }
 
@@ -405,15 +501,26 @@ function App() {
     }
 
     try {
-      const scaled = scaleImageModel(
-        imageModel,
+      const pixels = await imageWorkerClient.resize(
+        imageModel.getRawData(),
+        imageModel.width,
+        imageModel.height,
         result.width,
         result.height,
         result.methodId
       );
 
+      const scaled = pixelsToImageModel(
+        pixels,
+        result.width,
+        result.height,
+        imageModel.meta
+      );
+
       setImageModel(scaled);
-      setChannelPreviews(ImageChannels.generatePreviews(scaled));
+      setChannelPreviews(
+        await imageWorkerClient.generatePreviews(scaled)
+      );
       closeScaleDialog();
 
       toastMsg(
@@ -428,13 +535,13 @@ function App() {
   };
 
   const exportCanvas = (type: "png" | "jpg") => {
-    if (!displayModel) {
+    if (!imageModel) {
       toastMsg("Нет изображения", "error");
 
       return;
     }
 
-    const exportImage = ImageChannels.applyRaw(displayModel, activeChannels);
+    const exportImage = ImageChannels.applyRaw(imageModel, activeChannels);
 
     const canvas = document.createElement("canvas");
 
@@ -465,13 +572,13 @@ function App() {
   };
 
   const exportAsGb7 = () => {
-    if (!renderedImage) {
+    if (!canvasImage) {
       toastMsg("Нет изображения", "error");
 
       return;
     }
 
-    const gb7 = encodeGb7(renderedImage, false);
+    const gb7 = encodeGb7(canvasImage, false);
 
     const blob = new Blob([new Uint8Array(gb7)]);
 
@@ -525,13 +632,25 @@ function App() {
     }
 
     try {
-      const adjusted = applyLevels(levelsSnapshot, state);
+      const pixels = await imageWorkerClient.applyLevels(
+        levelsSnapshot.getRawData(),
+        levelsSnapshot.width,
+        levelsSnapshot.height,
+        levelsStateToWire(state)
+      );
+
+      const adjusted = pixelsToImageModel(
+        pixels,
+        levelsSnapshot.width,
+        levelsSnapshot.height,
+        levelsSnapshot.meta
+      );
 
       setImageModel(adjusted);
 
-      const previews = ImageChannels.generatePreviews(adjusted);
-
-      setChannelPreviews(previews);
+      setChannelPreviews(
+        await imageWorkerClient.generatePreviews(adjusted)
+      );
 
       closeLevelsDialog();
 
@@ -551,6 +670,8 @@ function App() {
     closeLevelsDialog();
 
     setImageModel(null);
+
+    setCanvasImage(null);
 
     setPixelInfo(null);
 
@@ -575,7 +696,7 @@ function App() {
   };
 
   const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
-    if (activeTool === "move" && renderedImage && e.button === 0) {
+    if (activeTool === "move" && canvasImage && e.button === 0) {
       setIsDragging(true);
 
       setDragStart({
@@ -604,9 +725,10 @@ function App() {
       return;
     }
 
-    const model = displayModel ?? imageModel;
+    const model =
+      isLevelsOpen && levelsSnapshot ? levelsSnapshot : imageModel;
 
-    if (!model) {
+    if (!model || !canvasImage) {
       return;
     }
 
@@ -630,9 +752,16 @@ function App() {
 
     const transformedY = (canvasY - canvas.height / 2 - panY) / scale;
 
-    const imageX = Math.floor(transformedX + model.width / 2);
+    const coordScaleX = model.width / canvasImage.width;
+    const coordScaleY = model.height / canvasImage.height;
 
-    const imageY = Math.floor(transformedY + model.height / 2);
+    const imageX = Math.floor(
+      transformedX * coordScaleX + model.width / 2
+    );
+
+    const imageY = Math.floor(
+      transformedY * coordScaleY + model.height / 2
+    );
 
     if (
       imageX < 0 ||
@@ -766,7 +895,7 @@ function App() {
               onWheel={handleWheelZoom}
               style={{
                 cursor:
-                  activeTool === "move" && renderedImage
+                  activeTool === "move" && canvasImage
                     ? isDragging
                       ? "grabbing"
                       : "grab"
