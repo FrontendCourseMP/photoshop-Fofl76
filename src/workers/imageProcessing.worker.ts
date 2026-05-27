@@ -6,6 +6,8 @@ import {
   downscaleBuffer,
   extractChannelBuffer,
 } from "../core/image/processing/channelsPixels";
+import { applyKernelFilterToBuffer } from "../core/image/processing/kernelsPixels";
+import type { KernelFilterStateWire } from "../core/image/processing/kernelsPixels";
 import {
   applyLevelsLUTs,
   applyLevelsToBuffer,
@@ -14,6 +16,7 @@ import {
 } from "../core/image/processing/levelsPixels";
 import {
   MAX_LEVELS_PREVIEW_EDGE,
+  MAX_KERNEL_PREVIEW_EDGE,
   type WorkerRequest,
   type WorkerResponse,
 } from "./imageWorkerProtocol";
@@ -27,12 +30,24 @@ let levelsPreviewSource: Uint8ClampedArray | null = null;
 let levelsPreviewWidth = 0;
 let levelsPreviewHeight = 0;
 
+let kernelPreviewSource: Uint8ClampedArray | null = null;
+let kernelPreviewWidth = 0;
+let kernelPreviewHeight = 0;
+
 function previewScaleFor(width: number, height: number): number {
   const maxEdge = Math.max(width, height);
   if (maxEdge <= MAX_LEVELS_PREVIEW_EDGE) {
     return 1;
   }
   return MAX_LEVELS_PREVIEW_EDGE / maxEdge;
+}
+
+function kernelPreviewScaleFor(width: number, height: number): number {
+  const maxEdge = Math.max(width, height);
+  if (maxEdge <= MAX_KERNEL_PREVIEW_EDGE) {
+    return 1;
+  }
+  return MAX_KERNEL_PREVIEW_EDGE / maxEdge;
 }
 
 function setLevelsSource(
@@ -63,6 +78,33 @@ function clearLevelsSource(): void {
   levelsPreviewSource = null;
 }
 
+function setKernelSource(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number
+): void {
+  const scale = kernelPreviewScaleFor(width, height);
+  if (scale < 1) {
+    kernelPreviewWidth = Math.max(1, Math.round(width * scale));
+    kernelPreviewHeight = Math.max(1, Math.round(height * scale));
+    kernelPreviewSource = downscaleBuffer(
+      pixels,
+      width,
+      height,
+      kernelPreviewWidth,
+      kernelPreviewHeight
+    );
+  } else {
+    kernelPreviewWidth = width;
+    kernelPreviewHeight = height;
+    kernelPreviewSource = pixels;
+  }
+}
+
+function clearKernelSource(): void {
+  kernelPreviewSource = null;
+}
+
 function applyLevelsPreview(state: LevelsStateWire): Uint8ClampedArray {
   if (!levelsPreviewSource) {
     throw new Error("Источник уровней не задан");
@@ -70,6 +112,21 @@ function applyLevelsPreview(state: LevelsStateWire): Uint8ClampedArray {
 
   const out = new Uint8ClampedArray(levelsPreviewSource);
   applyLevelsLUTs(out, resolveLevelsLUTs(state));
+  return out;
+}
+
+function applyKernelPreview(
+  state: KernelFilterStateWire
+): Uint8ClampedArray {
+  if (!kernelPreviewSource) {
+    throw new Error("Источник фильтра не задан");
+  }
+  const out = applyKernelFilterToBuffer(
+    kernelPreviewSource,
+    kernelPreviewWidth,
+    kernelPreviewHeight,
+    state
+  );
   return out;
 }
 
@@ -94,7 +151,8 @@ function generatePreviews(
   pixels: Uint8ClampedArray,
   width: number,
   height: number,
-  hasAlpha: boolean
+  hasAlpha: boolean,
+  isGb7Image: boolean
 ) {
   const previewHeight = 80;
   const previewWidth = Math.max(
@@ -102,11 +160,8 @@ function generatePreviews(
     Math.round((width / height) * previewHeight)
   );
 
-  const channels: Array<"red" | "green" | "blue" | "alpha"> = [
-    "red",
-    "green",
-    "blue",
-  ];
+  const channels: Array<"red" | "green" | "blue" | "alpha" | "gray"> =
+    isGb7Image ? ["gray"] : ["red", "green", "blue"];
   if (hasAlpha) {
     channels.push("alpha");
   }
@@ -149,6 +204,18 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
         break;
       }
 
+      case "setKernelSource": {
+        setKernelSource(msg.pixels, msg.width, msg.height);
+        reply({ id: msg.id, type: "ok" });
+        break;
+      }
+
+      case "clearKernelSource": {
+        clearKernelSource();
+        reply({ id: msg.id, type: "ok" });
+        break;
+      }
+
       case "applyLevelsPreview": {
         const pixels = applyLevelsPreview(msg.state);
         reply(
@@ -164,8 +231,43 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
         break;
       }
 
+      case "applyKernelPreview": {
+        const pixels = applyKernelPreview(msg.state);
+        reply(
+          {
+            id: msg.id,
+            type: "pixels",
+            pixels,
+            width: kernelPreviewWidth,
+            height: kernelPreviewHeight,
+          },
+          [pixels.buffer]
+        );
+        break;
+      }
+
       case "applyLevels": {
         const pixels = applyLevelsToBuffer(msg.pixels, msg.state);
+        reply(
+          {
+            id: msg.id,
+            type: "pixels",
+            pixels,
+            width: msg.width,
+            height: msg.height,
+          },
+          [pixels.buffer]
+        );
+        break;
+      }
+
+      case "applyKernel": {
+        const pixels = applyKernelFilterToBuffer(
+          msg.pixels,
+          msg.width,
+          msg.height,
+          msg.state
+        );
         reply(
           {
             id: msg.id,
@@ -221,7 +323,8 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
           msg.pixels,
           msg.width,
           msg.height,
-          msg.hasAlpha
+          msg.hasAlpha,
+          msg.isGb7Image
         );
         reply(
           { id: msg.id, type: "previews", items },

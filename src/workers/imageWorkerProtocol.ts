@@ -1,8 +1,12 @@
 import type { ActiveChannels } from "../core/image/types";
 import type { InterpolationMethodId } from "../core/image/interpolation";
 import type { LevelsStateWire } from "../core/image/processing/levelsPixels";
+import type {
+  KernelFilterStateWire,
+} from "../core/image/processing/kernelsPixels";
 
 export const MAX_LEVELS_PREVIEW_EDGE = 2048;
+export const MAX_KERNEL_PREVIEW_EDGE = 2048;
 
 export type WorkerRequest =
   | {
@@ -25,6 +29,27 @@ export type WorkerRequest =
       width: number;
       height: number;
       state: LevelsStateWire;
+    }
+  | {
+      id: number;
+      type: "setKernelSource";
+      pixels: Uint8ClampedArray;
+      width: number;
+      height: number;
+    }
+  | { id: number; type: "clearKernelSource" }
+  | {
+      id: number;
+      type: "applyKernelPreview";
+      state: KernelFilterStateWire;
+    }
+  | {
+      id: number;
+      type: "applyKernel";
+      pixels: Uint8ClampedArray;
+      width: number;
+      height: number;
+      state: KernelFilterStateWire;
     }
   | {
       id: number;
@@ -51,6 +76,7 @@ export type WorkerRequest =
       width: number;
       height: number;
       hasAlpha: boolean;
+      isGb7Image: boolean;
     };
 
 export type WorkerResponse =
@@ -66,7 +92,7 @@ export type WorkerResponse =
       id: number;
       type: "previews";
       items: Array<{
-        mode: "red" | "green" | "blue" | "alpha";
+        mode: "red" | "green" | "blue" | "alpha" | "gray";
         pixels: Uint8ClampedArray;
         width: number;
         height: number;

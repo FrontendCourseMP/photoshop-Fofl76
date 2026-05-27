@@ -26,7 +26,7 @@ export function applyChannelsToBuffer(
 
 export function extractChannelBuffer(
   source: Uint8ClampedArray,
-  channel: "red" | "green" | "blue" | "alpha"
+  channel: "red" | "green" | "blue" | "alpha" | "gray"
 ): Uint8ClampedArray {
   const out = new Uint8ClampedArray(source);
 
@@ -61,6 +61,14 @@ export function extractChannelBuffer(
         out[i + 2] = a;
         out[i + 3] = 255;
         break;
+      case "gray": {
+        const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        out[i] = gray;
+        out[i + 1] = gray;
+        out[i + 2] = gray;
+        out[i + 3] = 255;
+        break;
+      }
     }
   }
 

@@ -19,6 +19,7 @@ import type { ActiveChannels } from "./core/image/types";
 
 import { DialogApplyOverlay } from "./components/DialogApplyOverlay";
 import { LevelsDialog } from "./components/LevelsDialog";
+import { KernelsDialog } from "./components/KernelsDialog";
 import {
   ScaleDialog,
   type ScaleDialogResult,
@@ -33,6 +34,7 @@ import {
   imageWorkerClient,
   pixelsToImageModel,
 } from "./core/image/ImageWorkerClient";
+import type { KernelFilterStateWire } from "./core/image/processing/kernelsPixels";
 import {
   clampViewZoom,
   computeFitViewZoom,
@@ -87,6 +89,7 @@ function App() {
   const [panY, setPanY] = useState(0);
 
   const [isLevelsOpen, setIsLevelsOpen] = useState(false);
+  const [isKernelsOpen, setIsKernelsOpen] = useState(false);
 
   const [isScaleOpen, setIsScaleOpen] = useState(false);
 
@@ -100,6 +103,13 @@ function App() {
     useState<LevelsState | null>(null);
 
   const [levelsPreviewEnabled, setLevelsPreviewEnabled] = useState(true);
+
+  const [kernelsSnapshot, setKernelsSnapshot] = useState<ImageModel | null>(
+    null
+  );
+  const [kernelsPreviewState, setKernelsPreviewState] =
+    useState<KernelFilterStateWire | null>(null);
+  const [kernelsPreviewEnabled, setKernelsPreviewEnabled] = useState(true);
 
   const [isDragging, setIsDragging] = useState(false);
 
@@ -146,6 +156,23 @@ function App() {
   }, [isLevelsOpen, levelsSnapshot]);
 
   useEffect(() => {
+    if (!isKernelsOpen || !kernelsSnapshot) {
+      void imageWorkerClient.clearKernelSource();
+      return;
+    }
+
+    void imageWorkerClient.setKernelSource(
+      kernelsSnapshot.getRawData(),
+      kernelsSnapshot.width,
+      kernelsSnapshot.height
+    );
+
+    return () => {
+      void imageWorkerClient.clearKernelSource();
+    };
+  }, [isKernelsOpen, kernelsSnapshot]);
+
+  useEffect(() => {
     if (!imageModel) {
       return;
     }
@@ -179,6 +206,26 @@ function App() {
             pixels = new Uint8ClampedArray(levelsSnapshot.getRawData());
             width = levelsSnapshot.width;
             height = levelsSnapshot.height;
+          }
+        } else if (isKernelsOpen && kernelsSnapshot) {
+          if (!kernelsPreviewEnabled) {
+            pixels = new Uint8ClampedArray(kernelsSnapshot.getRawData());
+            width = kernelsSnapshot.width;
+            height = kernelsSnapshot.height;
+          } else if (kernelsPreviewState) {
+            const preview = await imageWorkerClient.applyKernelPreview(
+              kernelsPreviewState
+            );
+            if (cancelled || jobId !== renderJobRef.current) {
+              return;
+            }
+            pixels = preview.pixels;
+            width = preview.width;
+            height = preview.height;
+          } else {
+            pixels = new Uint8ClampedArray(kernelsSnapshot.getRawData());
+            width = kernelsSnapshot.width;
+            height = kernelsSnapshot.height;
           }
         } else {
           pixels = imageModel.getRawData();
@@ -246,6 +293,10 @@ function App() {
     levelsSnapshot,
     levelsPreviewState,
     levelsPreviewEnabled,
+    isKernelsOpen,
+    kernelsSnapshot,
+    kernelsPreviewState,
+    kernelsPreviewEnabled,
     activeChannels,
     toastMsg,
   ]);
@@ -402,7 +453,22 @@ function App() {
     e.target.value = "";
   };
 
-  const handleChannelToggle = (channel: keyof ActiveChannels) => {
+  const handleChannelToggle = (
+    channel: keyof ActiveChannels | "grayscale"
+  ) => {
+    if (channel === "grayscale") {
+      setActiveChannels((prev) => {
+        const next = !(prev.red && prev.green && prev.blue);
+        return {
+          ...prev,
+          red: next,
+          green: next,
+          blue: next,
+        };
+      });
+      return;
+    }
+
     setActiveChannels((prev) => ({
       ...prev,
       [channel]: !prev[channel],
@@ -610,6 +676,28 @@ function App() {
     setIsLevelsOpen(true);
   };
 
+  const openKernelsDialog = () => {
+    if (!imageModel) {
+      toastMsg("Сначала загрузите изображение", "error");
+      return;
+    }
+    const snapshot = imageModel.clone();
+    setKernelsSnapshot(snapshot);
+    setKernelsPreviewState({
+      filterType: "kernel",
+      kernel3x3: [0, 0, 0, 0, 1, 0, 0, 0, 0],
+      channels: {
+        red: true,
+        green: true,
+        blue: true,
+        alpha: imageModel.hasAlphaChannel(),
+      },
+      edgeHandling: "copy",
+    });
+    setKernelsPreviewEnabled(true);
+    setIsKernelsOpen(true);
+  };
+
   const closeLevelsDialog = () => {
     setIsLevelsOpen(false);
     setLevelsSnapshot(null);
@@ -617,10 +705,25 @@ function App() {
     setLevelsPreviewEnabled(true);
   };
 
+  const closeKernelsDialog = () => {
+    setIsKernelsOpen(false);
+    setKernelsSnapshot(null);
+    setKernelsPreviewState(null);
+    setKernelsPreviewEnabled(true);
+  };
+
   const handleLevelsPreviewChange = useCallback(
     (state: LevelsState, previewOn: boolean) => {
       setLevelsPreviewState(cloneLevelsState(state));
       setLevelsPreviewEnabled(previewOn);
+    },
+    []
+  );
+
+  const handleKernelsPreviewChange = useCallback(
+    (state: KernelFilterStateWire, previewOn: boolean) => {
+      setKernelsPreviewState({ ...state, channels: { ...state.channels } });
+      setKernelsPreviewEnabled(previewOn);
     },
     []
   );
@@ -666,8 +769,42 @@ function App() {
     closeLevelsDialog();
   };
 
+  const handleKernelsApply = async (state: KernelFilterStateWire) => {
+    if (!kernelsSnapshot) {
+      closeKernelsDialog();
+      return;
+    }
+    try {
+      const pixels = await imageWorkerClient.applyKernel(
+        kernelsSnapshot.getRawData(),
+        kernelsSnapshot.width,
+        kernelsSnapshot.height,
+        state
+      );
+      const filtered = pixelsToImageModel(
+        pixels,
+        kernelsSnapshot.width,
+        kernelsSnapshot.height,
+        kernelsSnapshot.meta
+      );
+      setImageModel(filtered);
+      setChannelPreviews(await imageWorkerClient.generatePreviews(filtered));
+      closeKernelsDialog();
+      toastMsg("Фильтр применён", "success");
+    } catch (error) {
+      console.error(error);
+      toastMsg("Не удалось применить фильтр", "error");
+      throw error;
+    }
+  };
+
+  const handleKernelsCancel = () => {
+    closeKernelsDialog();
+  };
+
   const clearCanvas = () => {
     closeLevelsDialog();
+    closeKernelsDialog();
 
     setImageModel(null);
 
@@ -854,7 +991,9 @@ function App() {
             channelPreviews={channelPreviews}
             hasImage={!!imageModel}
             hasAlphaChannel={imageModel?.hasAlphaChannel() ?? false}
+            isGb7Image={imageModel?.meta.format === "gb7"}
             onLevelsClick={openLevelsDialog}
+            onKernelsClick={openKernelsDialog}
             onScaleClick={openScaleDialog}
           />
 
@@ -941,7 +1080,8 @@ function App() {
                 Каналы:{" "}
                 {ImageChannels.getActiveChannelNames(
                   activeChannels,
-                  imageModel.hasAlphaChannel()
+                  imageModel.hasAlphaChannel(),
+                  imageModel.meta.format === "gb7"
                 )}
               </span>
 
@@ -996,6 +1136,16 @@ function App() {
           onApply={handleLevelsApply}
           onCancel={handleLevelsCancel}
           onPreviewChange={handleLevelsPreviewChange}
+        />
+      )}
+
+      {imageModel && kernelsSnapshot && (
+        <KernelsDialog
+          open={isKernelsOpen}
+          hasAlpha={imageModel.hasAlphaChannel()}
+          onApply={handleKernelsApply}
+          onCancel={handleKernelsCancel}
+          onPreviewChange={handleKernelsPreviewChange}
         />
       )}
 

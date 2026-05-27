@@ -9,6 +9,10 @@ import {
   type LevelsStateWire,
 } from "./processing/levelsPixels";
 import {
+  applyKernelFilterToBuffer,
+  type KernelFilterStateWire,
+} from "./processing/kernelsPixels";
+import {
   applyChannelsToBuffer,
   downscaleBuffer,
   extractChannelBuffer,
@@ -62,6 +66,12 @@ class ImageWorkerClient {
   >();
   private workerFailed = false;
   private levelsSourceFallback: {
+    pixels: Uint8ClampedArray;
+    width: number;
+    height: number;
+  } | null = null;
+
+  private kernelSourceFallback: {
     pixels: Uint8ClampedArray;
     width: number;
     height: number;
@@ -161,6 +171,128 @@ class ImageWorkerClient {
       await this.post({ id: this.allocId(), type: "clearLevelsSource" });
     } catch {
       /* ignore */
+    }
+  }
+
+  async setKernelSource(
+    pixels: Uint8ClampedArray,
+    width: number,
+    height: number
+  ): Promise<void> {
+    this.kernelSourceFallback = {
+      pixels: new Uint8ClampedArray(pixels),
+      width,
+      height,
+    };
+
+    const copy = new Uint8ClampedArray(pixels);
+    try {
+      await this.post(
+        {
+          id: this.allocId(),
+          type: "setKernelSource",
+          pixels: copy,
+          width,
+          height,
+        },
+        [copy.buffer]
+      );
+    } catch {
+      /* fallback хранится локально */
+    }
+  }
+
+  async clearKernelSource(): Promise<void> {
+    this.kernelSourceFallback = null;
+    try {
+      await this.post({ id: this.allocId(), type: "clearKernelSource" });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private applyKernelPreviewFallback(
+    state: KernelFilterStateWire
+  ): { pixels: Uint8ClampedArray; width: number; height: number } {
+    const source = this.kernelSourceFallback;
+    if (!source) {
+      throw new Error("Источник фильтра не задан");
+    }
+
+    const scale = Math.min(
+      1,
+      2048 / Math.max(source.width, source.height)
+    );
+    let pixels = source.pixels;
+    let width = source.width;
+    let height = source.height;
+
+    if (scale < 1) {
+      width = Math.max(1, Math.round(source.width * scale));
+      height = Math.max(1, Math.round(source.height * scale));
+      pixels = downscaleBuffer(
+        source.pixels,
+        source.width,
+        source.height,
+        width,
+        height
+      );
+    }
+
+    return {
+      pixels: applyKernelFilterToBuffer(pixels, width, height, state),
+      width,
+      height,
+    };
+  }
+
+  async applyKernelPreview(
+    state: KernelFilterStateWire
+  ): Promise<{ pixels: Uint8ClampedArray; width: number; height: number }> {
+    try {
+      const response = await this.post({
+        id: this.allocId(),
+        type: "applyKernelPreview",
+        state,
+      });
+      if (response.type !== "pixels") {
+        throw new Error("Неверный ответ worker");
+      }
+      return {
+        pixels: response.pixels,
+        width: response.width,
+        height: response.height,
+      };
+    } catch {
+      return this.applyKernelPreviewFallback(state);
+    }
+  }
+
+  async applyKernel(
+    pixels: Uint8ClampedArray,
+    width: number,
+    height: number,
+    state: KernelFilterStateWire
+  ): Promise<Uint8ClampedArray> {
+    const copy = new Uint8ClampedArray(pixels);
+    try {
+      const response = await this.post(
+        {
+          id: this.allocId(),
+          type: "applyKernel",
+          pixels: copy,
+          width,
+          height,
+          state,
+        },
+        [copy.buffer]
+      );
+      if (response.type !== "pixels") {
+        throw new Error("Неверный ответ worker");
+      }
+      return response.pixels;
+    } catch {
+      return applyKernelFilterToBuffer(pixels, width, height, state);
     }
   }
 
@@ -328,6 +460,7 @@ class ImageWorkerClient {
           width: model.width,
           height: model.height,
           hasAlpha: model.hasAlphaChannel(),
+          isGb7Image: model.meta.format === "gb7",
         },
         [copy.buffer]
       );
@@ -357,11 +490,8 @@ class ImageWorkerClient {
       1,
       Math.round((model.width / model.height) * previewHeight)
     );
-    const channels: Array<"red" | "green" | "blue" | "alpha"> = [
-      "red",
-      "green",
-      "blue",
-    ];
+    const channels: Array<"red" | "green" | "blue" | "alpha" | "gray"> =
+      model.meta.format === "gb7" ? ["gray"] : ["red", "green", "blue"];
     if (model.hasAlphaChannel()) {
       channels.push("alpha");
     }

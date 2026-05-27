@@ -79,6 +79,7 @@ export function LevelsDialog({
   onCancel,
   onPreviewChange,
 }: LevelsDialogProps) {
+  const isGb7Image = sourceImage.meta.format === "gb7";
   const sliderTrackRef =
     useRef<HTMLDivElement>(null);
   const levelsStateRef = useRef<LevelsState>(
@@ -98,8 +99,30 @@ export function LevelsDialog({
     useState<HandleKind | null>(null);
   const [isApplying, setIsApplying] = useState(false);
 
+  const channelOptions = useMemo(() => {
+    if (isGb7Image) {
+      const options: { value: LevelsTarget; label: string }[] = [
+        { value: "master", label: "Grayscale" },
+      ];
+      if (hasAlpha) {
+        options.push({ value: "alpha", label: "Mask" });
+      }
+      return options;
+    }
+
+    return CHANNEL_OPTIONS.filter(
+      (o) => o.value !== "alpha" || hasAlpha
+    );
+  }, [hasAlpha, isGb7Image]);
+
+  const effectiveTarget = channelOptions.some(
+    (option) => option.value === activeTarget
+  )
+    ? activeTarget
+    : (channelOptions[0]?.value ?? "master");
+
   const activeParams =
-    levelsState[activeTarget];
+    levelsState[effectiveTarget];
 
   useEffect(() => {
     levelsStateRef.current = levelsState;
@@ -144,9 +167,9 @@ export function LevelsDialog({
   const histogram = useMemo(() => {
     return computeHistogram(
       sourceImage,
-      targetToHistogramChannel(activeTarget)
+      targetToHistogramChannel(effectiveTarget)
     );
-  }, [sourceImage, activeTarget]);
+  }, [sourceImage, effectiveTarget]);
 
   const chartData = useMemo(() => {
     const labels = Array.from(
@@ -160,13 +183,13 @@ export function LevelsDialog({
           label: "Пиксели",
           data: histogram.bins,
           backgroundColor:
-            activeTarget === "red"
+            effectiveTarget === "red"
               ? "rgba(255, 80, 80, 0.75)"
-              : activeTarget === "green"
+              : effectiveTarget === "green"
                 ? "rgba(80, 220, 120, 0.75)"
-                : activeTarget === "blue"
+                : effectiveTarget === "blue"
                   ? "rgba(80, 140, 255, 0.75)"
-                  : activeTarget === "alpha"
+                  : effectiveTarget === "alpha"
                     ? "rgba(200, 200, 200, 0.75)"
                     : "rgba(180, 180, 180, 0.75)",
           borderWidth: 0,
@@ -175,7 +198,7 @@ export function LevelsDialog({
         },
       ],
     };
-  }, [histogram.bins, activeTarget]);
+  }, [histogram.bins, effectiveTarget]);
 
   const chartOptions = useMemo(
     () => ({
@@ -212,7 +235,7 @@ export function LevelsDialog({
     ) => {
       setLevelsState((prev) => {
         const current = {
-          ...prev[activeTarget],
+          ...prev[effectiveTarget],
           ...patch,
         };
         const clamped = clampChannelParams(
@@ -224,10 +247,10 @@ export function LevelsDialog({
 
         let next: LevelsState = {
           ...prev,
-          [activeTarget]: clamped,
+          [effectiveTarget]: clamped,
         };
 
-        if (activeTarget === "master") {
+        if (effectiveTarget === "master") {
           next = {
             ...next,
             master: clamped,
@@ -240,7 +263,7 @@ export function LevelsDialog({
         return next;
       });
     },
-    [activeTarget]
+    [effectiveTarget]
   );
 
   const handlePreviewToggle = (
@@ -347,10 +370,6 @@ export function LevelsDialog({
     activeParams.midtone
   );
 
-  const channelOptions = CHANNEL_OPTIONS.filter(
-    (o) => o.value !== "alpha" || hasAlpha
-  );
-
   return (
     <Modal
       open={open}
@@ -368,7 +387,7 @@ export function LevelsDialog({
         <label className="levels-dialog__field">
           Канал:
           <select
-            value={activeTarget}
+            value={effectiveTarget}
             disabled={isApplying}
             onChange={(e) =>
               setActiveTarget(

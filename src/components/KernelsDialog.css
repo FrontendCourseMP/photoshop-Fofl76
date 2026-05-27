@@ -1,0 +1,120 @@
+.kernels-dialog .app-modal__panel {
+  width: min(620px, calc(100vw - 32px));
+  min-width: min(620px, calc(100vw - 32px));
+  z-index: 1000;
+}
+
+.kernels-dialog .app-modal__body {
+  padding: 0 1.5rem 1.25rem;
+}
+
+.kernels-dialog__panel {
+  position: relative;
+}
+
+.kernels-dialog__panel--busy {
+  pointer-events: none;
+}
+
+.kernels-dialog__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 0.8rem;
+}
+
+.kernels-dialog__field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.kernels-dialog__field select,
+.kernels-dialog__matrix input {
+  background: #1e1e1e;
+  border: 1px solid #505050;
+  color: #e8e8e8;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.kernels-dialog__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.kernels-dialog__channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.kernels-dialog__matrix {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+  padding: 0.8rem;
+  background: #1a1a1a;
+  border: 1px solid #404040;
+  border-radius: 6px;
+}
+
+.kernels-dialog__matrix input {
+  width: 100%;
+  text-align: center;
+  padding: 0.35rem 0.25rem;
+}
+
+.kernels-dialog__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kernels-dialog__actions-right {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.kernels-dialog__btn {
+  padding: 0.45rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: 1px solid #505050;
+  transition: background 0.15s;
+}
+
+.kernels-dialog__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.kernels-dialog__btn--secondary {
+  background: #3c3c3c;
+  color: #e0e0e0;
+}
+
+.kernels-dialog__btn--secondary:hover {
+  background: #4a4a4a;
+}
+
+.kernels-dialog__btn--primary {
+  background: #0d6efd;
+  border-color: #0a58ca;
+  color: #fff;
+}
+
+.kernels-dialog__btn--primary:hover {
+  background: #0b5ed7;
+}
+

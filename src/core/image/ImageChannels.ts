@@ -2,6 +2,7 @@ import { ImageModel } from "./ImageModel";
 import type { ActiveChannels } from "./types";
 
 export type ChannelName =
+  | "gray"
   | "red"
   | "green"
   | "blue"
@@ -288,9 +289,20 @@ export class ImageChannels {
 
   static getActiveChannelNames(
     channels: ActiveChannels,
-    hasAlpha: boolean
+    hasAlpha: boolean,
+    isGb7Image = false
   ): string {
     const result: string[] = [];
+
+    if (isGb7Image) {
+      if (channels.red || channels.green || channels.blue) {
+        result.push("Gray");
+      }
+      if (channels.alpha && hasAlpha) {
+        result.push("Mask");
+      }
+      return result.join("+");
+    }
 
     if (channels.red) {
       result.push("R");
