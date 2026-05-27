@@ -98,7 +98,7 @@ export class ImageModel {
   }
 
   extractChannel(
-    channel: "red" | "green" | "blue" | "alpha"
+    channel: "red" | "green" | "blue" | "alpha" | "gray"
   ): ImageModel {
     const cloned = this.clone();
     const data = cloned.getRawData();
@@ -134,6 +134,17 @@ export class ImageModel {
           data[i + 2] = a;
           data[i + 3] = 255;
           break;
+
+        case "gray": {
+          const gray = Math.round(
+            0.299 * r + 0.587 * g + 0.114 * b
+          );
+          data[i] = gray;
+          data[i + 1] = gray;
+          data[i + 2] = gray;
+          data[i + 3] = 255;
+          break;
+        }
       }
     }
 

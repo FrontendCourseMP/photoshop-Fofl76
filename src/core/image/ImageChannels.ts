@@ -196,11 +196,10 @@ export class ImageChannels {
   static generatePreviews(
     image: ImageModel
   ): ChannelPreview[] {
-    const channels: ChannelName[] = [
-      "red",
-      "green",
-      "blue",
-    ];
+    const channels: ChannelName[] =
+      image.meta.format === "gb7"
+        ? ["gray"]
+        : ["red", "green", "blue"];
 
     if (image.hasAlphaChannel()) {
       channels.push("alpha");
