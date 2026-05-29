@@ -19,9 +19,12 @@ type KernelPresetId =
   | "prewittY"
   | "median3";
 
+type KernelChannelKey = keyof ActiveChannels | "grayscale";
+
 type KernelsDialogProps = {
   open: boolean;
   hasAlpha: boolean;
+  isGb7Image?: boolean;
   onApply: (state: KernelFilterStateWire) => void | Promise<void>;
   onCancel: () => void;
   onPreviewChange: (state: KernelFilterStateWire, preview: boolean) => void;
@@ -130,6 +133,7 @@ function parseNumberOr(prev: number, raw: string): number {
 export function KernelsDialog({
   open,
   hasAlpha,
+  isGb7Image = false,
   onApply,
   onCancel,
   onPreviewChange,
@@ -172,14 +176,37 @@ export function KernelsDialog({
   }, [open, state, preview, schedulePreview]);
 
   const channelOptions = useMemo(() => {
-    const items: Array<{ key: keyof ActiveChannels; label: string }> = [
+    if (isGb7Image) {
+      const items: Array<{ key: KernelChannelKey; label: string }> = [
+        { key: "grayscale", label: "Grayscale" },
+      ];
+      if (hasAlpha) {
+        items.push({ key: "alpha", label: "Mask" });
+      }
+      return items;
+    }
+
+    const items: Array<{ key: KernelChannelKey; label: string }> = [
       { key: "red", label: "R" },
       { key: "green", label: "G" },
       { key: "blue", label: "B" },
     ];
-    if (hasAlpha) items.push({ key: "alpha", label: "A" });
+    if (hasAlpha) {
+      items.push({ key: "alpha", label: "A" });
+    }
     return items;
-  }, [hasAlpha]);
+  }, [hasAlpha, isGb7Image]);
+
+  const isChannelChecked = (key: KernelChannelKey): boolean => {
+    if (key === "grayscale") {
+      return (
+        state.channels.red &&
+        state.channels.green &&
+        state.channels.blue
+      );
+    }
+    return state.channels[key];
+  };
 
   const handlePreviewToggle = (checked: boolean) => {
     setPreview(checked);
@@ -206,7 +233,27 @@ export function KernelsDialog({
     });
   };
 
-  const handleChannelToggle = (ch: keyof ActiveChannels) => {
+  const handleChannelToggle = (ch: KernelChannelKey) => {
+    if (ch === "grayscale") {
+      setState((prev) => {
+        const enabled =
+          prev.channels.red &&
+          prev.channels.green &&
+          prev.channels.blue;
+        const next = !enabled;
+        return {
+          ...prev,
+          channels: {
+            ...prev.channels,
+            red: next,
+            green: next,
+            blue: next,
+          },
+        };
+      });
+      return;
+    }
+
     setState((prev) => ({
       ...prev,
       channels: { ...prev.channels, [ch]: !prev.channels[ch] },
@@ -314,7 +361,7 @@ export function KernelsDialog({
               <label key={c.key} className="kernels-dialog__checkbox">
                 <input
                   type="checkbox"
-                  checked={state.channels[c.key]}
+                  checked={isChannelChecked(c.key)}
                   disabled={isApplying}
                   onChange={() => handleChannelToggle(c.key)}
                 />

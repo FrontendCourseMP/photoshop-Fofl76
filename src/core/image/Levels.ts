@@ -118,27 +118,21 @@ export function clampChannelParams(
   params: LevelsChannelParams,
   changed: "black" | "white" | "midtone"
 ): LevelsChannelParams {
-  let { inputBlack, inputWhite, midtone } =
-    params;
+  let { inputBlack, inputWhite, midtone } = params;
 
-  inputBlack = Math.round(
-    Math.max(0, Math.min(254, inputBlack))
-  );
-  inputWhite = Math.round(
-    Math.max(1, Math.min(255, inputWhite))
-  );
-
-  if (changed === "black" && inputBlack >= inputWhite) {
-    inputWhite = Math.min(255, inputBlack + 1);
-  }
-  if (changed === "white" && inputWhite <= inputBlack) {
-    inputBlack = Math.max(0, inputWhite - 1);
-  }
-  if (inputBlack >= inputWhite) {
-    inputWhite = inputBlack + 1;
-  }
-
+  inputBlack = Math.round(inputBlack);
+  inputWhite = Math.round(inputWhite);
   midtone = Math.round(midtone);
+
+  inputBlack = Math.max(0, Math.min(254, inputBlack));
+  inputWhite = Math.max(1, Math.min(255, inputWhite));
+
+  if (changed === "black") {
+    inputBlack = Math.min(inputBlack, inputWhite - 1);
+  } else if (changed === "white") {
+    inputWhite = Math.max(inputWhite, inputBlack + 1);
+  }
+
   midtone = Math.max(
     inputBlack + 1,
     Math.min(inputWhite - 1, midtone)

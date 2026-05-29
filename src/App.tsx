@@ -35,6 +35,12 @@ import {
   pixelsToImageModel,
 } from "./core/image/ImageWorkerClient";
 import type { KernelFilterStateWire } from "./core/image/processing/kernelsPixels";
+import { DEFAULT_INTERPOLATION_ID } from "./core/image/interpolation";
+import {
+  computeViewDisplayDimensions,
+  mapCanvasPointToImage,
+  resampleImageDataSync,
+} from "./core/image/viewDisplay";
 import {
   clampViewZoom,
   computeFitViewZoom,
@@ -129,6 +135,12 @@ function App() {
   const [canvasImage, setCanvasImage] = useState<ImageData | null>(null);
 
   const renderJobRef = useRef(0);
+
+  const viewDisplayCacheRef = useRef<{
+    source: ImageData | null;
+    scale: number;
+    image: ImageData | null;
+  }>({ source: null, scale: 1, image: null });
 
   const toastMsg = useCallback((message: string, type: "success" | "error") => {
     if (type === "success") {
@@ -301,6 +313,46 @@ function App() {
     toastMsg,
   ]);
 
+  const resolveViewDisplayImage = useCallback(
+    (source: ImageData | null, zoom: number): ImageData | null => {
+      if (!source) {
+        viewDisplayCacheRef.current = {
+          source: null,
+          scale: 1,
+          image: null,
+        };
+        return null;
+      }
+
+      if (zoom === 1) {
+        viewDisplayCacheRef.current = {
+          source,
+          scale: 1,
+          image: source,
+        };
+        return source;
+      }
+
+      const cache = viewDisplayCacheRef.current;
+      if (
+        cache.source === source &&
+        cache.scale === zoom &&
+        cache.image
+      ) {
+        return cache.image;
+      }
+
+      const image = resampleImageDataSync(
+        source,
+        zoom,
+        DEFAULT_INTERPOLATION_ID
+      );
+      viewDisplayCacheRef.current = { source, scale: zoom, image };
+      return image;
+    },
+    []
+  );
+
   const applyFitViewZoom = useCallback((model: ImageModel) => {
     const container = containerRef.current;
     if (!container) {
@@ -356,7 +408,9 @@ function App() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (!canvasImage) {
+    const imageToDraw = resolveViewDisplayImage(canvasImage, scale);
+
+    if (!imageToDraw) {
       return;
     }
 
@@ -364,13 +418,11 @@ function App() {
 
     ctx.translate(canvas.width / 2 + panX, canvas.height / 2 + panY);
 
-    ctx.scale(scale, scale);
-
     const tempCanvas = document.createElement("canvas");
 
-    tempCanvas.width = canvasImage.width;
+    tempCanvas.width = imageToDraw.width;
 
-    tempCanvas.height = canvasImage.height;
+    tempCanvas.height = imageToDraw.height;
 
     const tempCtx = tempCanvas.getContext("2d");
 
@@ -378,16 +430,16 @@ function App() {
       return;
     }
 
-    tempCtx.putImageData(canvasImage, 0, 0);
+    tempCtx.putImageData(imageToDraw, 0, 0);
 
     ctx.drawImage(
       tempCanvas,
-      -canvasImage.width / 2,
-      -canvasImage.height / 2
+      -imageToDraw.width / 2,
+      -imageToDraw.height / 2
     );
 
     ctx.restore();
-  }, [canvasImage, scale, panX, panY]);
+  }, [canvasImage, scale, panX, panY, resolveViewDisplayImage]);
 
   const handleImport = () => {
     if (isImageLoading) {
@@ -522,13 +574,31 @@ function App() {
 
     const centerY = canvas.height / 2;
 
-    const worldX = (mouseX - centerX - panX) / scale;
+    const currentDisplay = computeViewDisplayDimensions(
+      canvasImage.width,
+      canvasImage.height,
+      scale
+    );
+    const displayW = currentDisplay.width;
+    const displayH = currentDisplay.height;
 
-    const worldY = (mouseY - centerY - panY) / scale;
+    const worldX =
+      ((mouseX - centerX - panX) * canvasImage.width) / displayW;
 
-    const newPanX = mouseX - centerX - worldX * newScale;
+    const worldY =
+      ((mouseY - centerY - panY) * canvasImage.height) / displayH;
 
-    const newPanY = mouseY - centerY - worldY * newScale;
+    const nextDisplay = computeViewDisplayDimensions(
+      canvasImage.width,
+      canvasImage.height,
+      newScale
+    );
+
+    const newPanX =
+      mouseX - centerX - (worldX * nextDisplay.width) / canvasImage.width;
+
+    const newPanY =
+      mouseY - centerY - (worldY * nextDisplay.height) / canvasImage.height;
 
     setScale(newScale);
     setPanX(newPanX);
@@ -885,36 +955,41 @@ function App() {
 
     const canvasY = (e.clientY - rect.top) * scaleY;
 
-    const transformedX = (canvasX - canvas.width / 2 - panX) / scale;
-
-    const transformedY = (canvasY - canvas.height / 2 - panY) / scale;
-
-    const coordScaleX = model.width / canvasImage.width;
-    const coordScaleY = model.height / canvasImage.height;
-
-    const imageX = Math.floor(
-      transformedX * coordScaleX + model.width / 2
+    const drawn =
+      resolveViewDisplayImage(canvasImage, scale) ?? canvasImage;
+    const { x: imageX, y: imageY } = mapCanvasPointToImage(
+      canvasX,
+      canvasY,
+      canvas.width,
+      canvas.height,
+      panX,
+      panY,
+      drawn.width,
+      drawn.height,
+      canvasImage.width,
+      canvasImage.height
     );
 
-    const imageY = Math.floor(
-      transformedY * coordScaleY + model.height / 2
-    );
+    const modelScaleX = model.width / canvasImage.width;
+    const modelScaleY = model.height / canvasImage.height;
+    const modelX = Math.floor(imageX * modelScaleX);
+    const modelY = Math.floor(imageY * modelScaleY);
 
     if (
-      imageX < 0 ||
-      imageY < 0 ||
-      imageX >= model.width ||
-      imageY >= model.height
+      modelX < 0 ||
+      modelY < 0 ||
+      modelX >= model.width ||
+      modelY >= model.height
     ) {
       return;
     }
 
-    const pixel = model.getPixel(imageX, imageY);
+    const pixel = model.getPixel(modelX, modelY);
     const lab = rgbToCIELAB(pixel.r, pixel.g, pixel.b);
 
     setPixelInfo({
-      x: imageX,
-      y: imageY,
+      x: modelX,
+      y: modelY,
       r: pixel.r,
       g: pixel.g,
       b: pixel.b,
@@ -1143,6 +1218,7 @@ function App() {
         <KernelsDialog
           open={isKernelsOpen}
           hasAlpha={imageModel.hasAlphaChannel()}
+          isGb7Image={imageModel.meta.format === "gb7"}
           onApply={handleKernelsApply}
           onCancel={handleKernelsCancel}
           onPreviewChange={handleKernelsPreviewChange}

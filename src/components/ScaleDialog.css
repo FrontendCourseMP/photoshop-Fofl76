@@ -65,10 +65,11 @@
 }
 
 .scale-dialog__errors {
-  margin: 0;
+  margin: -4px 0 0;
   padding-left: 18px;
   color: #ff8a8a;
   font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .scale-dialog__actions {
