@@ -17,7 +17,7 @@ import {
   downscaleBuffer,
   extractChannelBuffer,
 } from "./processing/channelsPixels";
-import { levelsStateToWire, type LevelsState } from "./Levels";
+import { levelsStateToWire } from "./Levels";
 import type { WorkerRequest, WorkerResponse } from "../../workers/imageWorkerProtocol";
 
 const interpolationMethods = {
