@@ -86,6 +86,7 @@ export function LevelsDialog({
     createDefaultLevelsState()
   );
   const previewEnabledRef = useRef(true);
+  const dragTargetRef = useRef<LevelsTarget | null>(null);
 
   const [levelsState, setLevelsState] =
     useState<LevelsState>(createDefaultLevelsState);
@@ -228,14 +229,15 @@ export function LevelsDialog({
     [logScale]
   );
 
-  const updateParams = useCallback(
+  const updateChannelParams = useCallback(
     (
+      target: LevelsTarget,
       patch: Partial<LevelsChannelParams>,
       changed: HandleKind
     ) => {
       setLevelsState((prev) => {
         const current = {
-          ...prev[effectiveTarget],
+          ...prev[target],
           ...patch,
         };
         const clamped = clampChannelParams(
@@ -245,25 +247,13 @@ export function LevelsDialog({
             : changed
         );
 
-        let next: LevelsState = {
+        return {
           ...prev,
-          [effectiveTarget]: clamped,
+          [target]: clamped,
         };
-
-        if (effectiveTarget === "master") {
-          next = {
-            ...next,
-            master: clamped,
-            red: { ...clamped },
-            green: { ...clamped },
-            blue: { ...clamped },
-          };
-        }
-
-        return next;
       });
     },
-    [effectiveTarget]
+    []
   );
 
   const handlePreviewToggle = (
@@ -327,24 +317,29 @@ export function LevelsDialog({
       return;
     }
 
+    const target = dragTargetRef.current ?? effectiveTarget;
+
     const onMove = (e: MouseEvent) => {
       const value = valueFromClientX(e.clientX);
       if (dragging === "black") {
-        updateParams(
+        updateChannelParams(
+          target,
           { inputBlack: value },
           "black"
         );
       } else if (dragging === "white") {
-        updateParams(
+        updateChannelParams(
+          target,
           { inputWhite: value },
           "white"
         );
       } else {
-        updateParams({ midtone: value }, "midtone");
+        updateChannelParams(target, { midtone: value }, "midtone");
       }
     };
 
     const onUp = () => {
+      dragTargetRef.current = null;
       setDragging(null);
       flushPreview();
       onPreviewChange(
@@ -359,7 +354,7 @@ export function LevelsDialog({
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [dragging, updateParams, flushPreview, onPreviewChange]);
+  }, [dragging, effectiveTarget, updateChannelParams, flushPreview, onPreviewChange]);
 
   const handlePos = (value: number) =>
     `${(value / 255) * 100}%`;
@@ -390,9 +385,7 @@ export function LevelsDialog({
             value={effectiveTarget}
             disabled={isApplying}
             onChange={(e) =>
-              setActiveTarget(
-                e.target.value as LevelsTarget
-              )
+              setActiveTarget(e.target.value as LevelsTarget)
             }
           >
             {channelOptions.map((opt) => (
@@ -447,6 +440,7 @@ export function LevelsDialog({
           style={{ left: handlePos(activeParams.inputBlack) }}
           onMouseDown={(e) => {
             e.preventDefault();
+            dragTargetRef.current = effectiveTarget;
             setDragging("black");
           }}
           title="Точка чёрного"
@@ -456,6 +450,7 @@ export function LevelsDialog({
           style={{ left: handlePos(activeParams.midtone) }}
           onMouseDown={(e) => {
             e.preventDefault();
+            dragTargetRef.current = effectiveTarget;
             setDragging("midtone");
           }}
           title={`Полутона (γ=${gamma.toFixed(2)})`}
@@ -465,6 +460,7 @@ export function LevelsDialog({
           style={{ left: handlePos(activeParams.inputWhite) }}
           onMouseDown={(e) => {
             e.preventDefault();
+            dragTargetRef.current = effectiveTarget;
             setDragging("white");
           }}
           title="Точка белого"

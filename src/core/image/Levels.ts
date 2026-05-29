@@ -44,6 +44,7 @@ export function createDefaultLevelsState(): LevelsState {
 
 export function levelsStateToWire(state: LevelsState): LevelsStateWire {
   return {
+    master: state.master,
     red: state.red,
     green: state.green,
     blue: state.blue,

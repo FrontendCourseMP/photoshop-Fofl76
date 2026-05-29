@@ -7,6 +7,7 @@ export type LevelsChannelParamsWire = {
 };
 
 export type LevelsStateWire = {
+  master: LevelsChannelParamsWire;
   red: LevelsChannelParamsWire;
   green: LevelsChannelParamsWire;
   blue: LevelsChannelParamsWire;
@@ -73,11 +74,43 @@ export type LevelsLUTsWire = {
   lutA: LUT | null;
 };
 
+function composeLUT(outer: LUT, inner: LUT): LUT {
+  const out = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) {
+    out[i] = outer[inner[i]];
+  }
+  return out;
+}
+
+/** Сначала канал, затем master — как в Photoshop Levels. */
+function effectiveRgbLUT(
+  channel: LevelsChannelParamsWire,
+  master: LevelsChannelParamsWire
+): LUT | null {
+  const channelLut = isDefaultParams(channel)
+    ? null
+    : paramsToLUT(channel);
+  const masterLut = isDefaultParams(master)
+    ? null
+    : paramsToLUT(master);
+
+  if (!channelLut && !masterLut) {
+    return null;
+  }
+  if (!channelLut) {
+    return masterLut;
+  }
+  if (!masterLut) {
+    return channelLut;
+  }
+  return composeLUT(masterLut, channelLut);
+}
+
 export function resolveLevelsLUTs(state: LevelsStateWire): LevelsLUTsWire {
   return {
-    lutR: isDefaultParams(state.red) ? null : paramsToLUT(state.red),
-    lutG: isDefaultParams(state.green) ? null : paramsToLUT(state.green),
-    lutB: isDefaultParams(state.blue) ? null : paramsToLUT(state.blue),
+    lutR: effectiveRgbLUT(state.red, state.master),
+    lutG: effectiveRgbLUT(state.green, state.master),
+    lutB: effectiveRgbLUT(state.blue, state.master),
     lutA: isDefaultParams(state.alpha) ? null : paramsToLUT(state.alpha),
   };
 }

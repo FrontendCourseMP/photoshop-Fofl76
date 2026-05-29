@@ -17,7 +17,7 @@ import {
   downscaleBuffer,
   extractChannelBuffer,
 } from "./processing/channelsPixels";
-import type { LevelsState } from "./Levels";
+import { levelsStateToWire, type LevelsState } from "./Levels";
 import type { WorkerRequest, WorkerResponse } from "../../workers/imageWorkerProtocol";
 
 const interpolationMethods = {
@@ -45,14 +45,7 @@ function previewPixelsToDataUrl(
   return canvas.toDataURL();
 }
 
-export function levelsStateToWire(state: LevelsState): LevelsStateWire {
-  return {
-    red: state.red,
-    green: state.green,
-    blue: state.blue,
-    alpha: state.alpha,
-  };
-}
+export { levelsStateToWire };
 
 class ImageWorkerClient {
   private worker: Worker | null = null;
