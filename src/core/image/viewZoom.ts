@@ -2,6 +2,7 @@ export const VIEW_ZOOM_MIN = 0.12;
 export const VIEW_ZOOM_MAX = 3;
 export const CANVAS_FIT_PADDING_PX = 50;
 
+/** Быстрый выбор масштаба просмотра; ресемплинг — через `resampleImageDataSync` / `getInterpolationMethod`. */
 export const VIEW_ZOOM_PRESETS = [
   { label: "12%", value: 0.12 },
   { label: "25%", value: 0.25 },

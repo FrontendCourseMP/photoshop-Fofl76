@@ -1,10 +1,31 @@
 import type { ActiveChannels } from "../types";
 
+/** Только альфа включён — показываем маску как grayscale, как в превью канала. */
+export function isSoloAlphaChannelView(channels: ActiveChannels): boolean {
+  return (
+    channels.alpha &&
+    !channels.red &&
+    !channels.green &&
+    !channels.blue
+  );
+}
+
 export function applyChannelsToBuffer(
   source: Uint8ClampedArray,
   channels: ActiveChannels
 ): Uint8ClampedArray {
   const out = new Uint8ClampedArray(source);
+
+  if (isSoloAlphaChannelView(channels)) {
+    for (let i = 0; i < out.length; i += 4) {
+      const a = source[i + 3];
+      out[i] = a;
+      out[i + 1] = a;
+      out[i + 2] = a;
+      out[i + 3] = 255;
+    }
+    return out;
+  }
 
   for (let i = 0; i < out.length; i += 4) {
     if (!channels.red) {

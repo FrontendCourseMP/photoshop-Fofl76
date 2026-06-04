@@ -11,6 +11,7 @@ import type {
 } from "../core/image/processing/kernelsPixels";
 
 type KernelPresetId =
+  | "custom"
   | "identity"
   | "sharpen"
   | "gaussian3"
@@ -18,6 +19,8 @@ type KernelPresetId =
   | "prewittX"
   | "prewittY"
   | "median3";
+
+const CUSTOM_PRESET_LABEL = "Пользовательский вариант";
 
 type KernelChannelKey = keyof ActiveChannels | "grayscale";
 
@@ -130,6 +133,23 @@ function parseNumberOr(prev: number, raw: string): number {
   return Number.isFinite(n) ? n : prev;
 }
 
+function kernelsMatch(
+  a: KernelFilterStateWire["kernel3x3"],
+  b: KernelFilterStateWire["kernel3x3"]
+): boolean {
+  return a.every((v, i) => v === b[i]);
+}
+
+function findMatchingPresetId(
+  filterType: KernelFilterTypeWire,
+  kernel3x3: KernelFilterStateWire["kernel3x3"]
+): KernelPresetId | "custom" {
+  const match = PRESETS.find(
+    (p) => p.filterType === filterType && kernelsMatch(p.kernel3x3, kernel3x3)
+  );
+  return match?.id ?? "custom";
+}
+
 export function KernelsDialog({
   open,
   hasAlpha,
@@ -215,6 +235,10 @@ export function KernelsDialog({
   };
 
   const applyPreset = (id: KernelPresetId) => {
+    if (id === "custom") {
+      setPresetId("custom");
+      return;
+    }
     const preset = PRESETS.find((p) => p.id === id);
     if (!preset) return;
     setPresetId(id);
@@ -226,11 +250,13 @@ export function KernelsDialog({
   };
 
   const handleKernelCellChange = (index: number, raw: string) => {
-    setState((prev) => {
-      const nextKernel = [...prev.kernel3x3] as KernelFilterStateWire["kernel3x3"];
-      nextKernel[index] = parseNumberOr(nextKernel[index], raw);
-      return { ...prev, kernel3x3: nextKernel };
-    });
+    const prev = stateRef.current;
+    const nextKernel = [...prev.kernel3x3] as KernelFilterStateWire["kernel3x3"];
+    nextKernel[index] = parseNumberOr(nextKernel[index], raw);
+    const next = { ...prev, kernel3x3: nextKernel };
+    stateRef.current = next;
+    setPresetId(findMatchingPresetId(prev.filterType, nextKernel));
+    setState(next);
   };
 
   const handleChannelToggle = (ch: KernelChannelKey) => {
@@ -316,6 +342,7 @@ export function KernelsDialog({
               disabled={isApplying}
               onChange={(e) => applyPreset(e.target.value as KernelPresetId)}
             >
+              <option value="custom">{CUSTOM_PRESET_LABEL}</option>
               {PRESETS.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.label}

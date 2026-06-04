@@ -1,4 +1,5 @@
 import type { ActiveChannels, ImageMeta, PixelData } from "./types";
+import { isSoloAlphaChannelView } from "./processing/channelsPixels";
 
 export class ImageModel {
   public readonly width: number;
@@ -75,6 +76,18 @@ export class ImageModel {
   applyChannels(channels: ActiveChannels): ImageModel {
     const cloned = this.clone();
     const data = cloned.getRawData();
+    const source = this.getRawData();
+
+    if (isSoloAlphaChannelView(channels)) {
+      for (let i = 0; i < data.length; i += 4) {
+        const a = source[i + 3];
+        data[i] = a;
+        data[i + 1] = a;
+        data[i + 2] = a;
+        data[i + 3] = 255;
+      }
+      return cloned;
+    }
 
     for (let i = 0; i < data.length; i += 4) {
       if (!channels.red) {

@@ -35,7 +35,12 @@ import {
   pixelsToImageModel,
 } from "./core/image/ImageWorkerClient";
 import type { KernelFilterStateWire } from "./core/image/processing/kernelsPixels";
-import { DEFAULT_INTERPOLATION_ID } from "./core/image/interpolation";
+import {
+  DEFAULT_INTERPOLATION_ID,
+  INTERPOLATION_METHODS,
+  type InterpolationMethodId,
+} from "./core/image/interpolation";
+import { isSoloAlphaChannelView } from "./core/image/processing/channelsPixels";
 import {
   computeViewDisplayDimensions,
   mapCanvasPointToImage,
@@ -103,6 +108,9 @@ function App() {
 
   const [zoomPresetKey, setZoomPresetKey] = useState(0);
 
+  const [viewInterpolationId, setViewInterpolationId] =
+    useState<InterpolationMethodId>(DEFAULT_INTERPOLATION_ID);
+
   const [levelsSnapshot, setLevelsSnapshot] = useState<ImageModel | null>(null);
 
   const [levelsPreviewState, setLevelsPreviewState] =
@@ -139,8 +147,9 @@ function App() {
   const viewDisplayCacheRef = useRef<{
     source: ImageData | null;
     scale: number;
+    methodId: InterpolationMethodId;
     image: ImageData | null;
-  }>({ source: null, scale: 1, image: null });
+  }>({ source: null, scale: 1, methodId: DEFAULT_INTERPOLATION_ID, image: null });
 
   const toastMsg = useCallback((message: string, type: "success" | "error") => {
     if (type === "success") {
@@ -257,6 +266,7 @@ function App() {
         }
 
         const useCheckerboard =
+          !isSoloAlphaChannelView(activeChannels) &&
           !isLevelsOpen &&
           width * height <= 512 * 512 &&
           imageModel.hasAlphaChannel() &&
@@ -314,11 +324,16 @@ function App() {
   ]);
 
   const resolveViewDisplayImage = useCallback(
-    (source: ImageData | null, zoom: number): ImageData | null => {
+    (
+      source: ImageData | null,
+      zoom: number,
+      methodId: InterpolationMethodId
+    ): ImageData | null => {
       if (!source) {
         viewDisplayCacheRef.current = {
           source: null,
           scale: 1,
+          methodId,
           image: null,
         };
         return null;
@@ -328,6 +343,7 @@ function App() {
         viewDisplayCacheRef.current = {
           source,
           scale: 1,
+          methodId,
           image: source,
         };
         return source;
@@ -337,17 +353,14 @@ function App() {
       if (
         cache.source === source &&
         cache.scale === zoom &&
+        cache.methodId === methodId &&
         cache.image
       ) {
         return cache.image;
       }
 
-      const image = resampleImageDataSync(
-        source,
-        zoom,
-        DEFAULT_INTERPOLATION_ID
-      );
-      viewDisplayCacheRef.current = { source, scale: zoom, image };
+      const image = resampleImageDataSync(source, zoom, methodId);
+      viewDisplayCacheRef.current = { source, scale: zoom, methodId, image };
       return image;
     },
     []
@@ -408,7 +421,11 @@ function App() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const imageToDraw = resolveViewDisplayImage(canvasImage, scale);
+    const imageToDraw = resolveViewDisplayImage(
+      canvasImage,
+      scale,
+      viewInterpolationId
+    );
 
     if (!imageToDraw) {
       return;
@@ -439,7 +456,14 @@ function App() {
     );
 
     ctx.restore();
-  }, [canvasImage, scale, panX, panY, resolveViewDisplayImage]);
+  }, [
+    canvasImage,
+    scale,
+    panX,
+    panY,
+    viewInterpolationId,
+    resolveViewDisplayImage,
+  ]);
 
   const handleImport = () => {
     if (isImageLoading) {
@@ -955,8 +979,11 @@ function App() {
 
     const canvasY = (e.clientY - rect.top) * scaleY;
 
-    const drawn =
-      resolveViewDisplayImage(canvasImage, scale) ?? canvasImage;
+    const display = computeViewDisplayDimensions(
+      canvasImage.width,
+      canvasImage.height,
+      scale
+    );
     const { x: imageX, y: imageY } = mapCanvasPointToImage(
       canvasX,
       canvasY,
@@ -964,8 +991,8 @@ function App() {
       canvas.height,
       panX,
       panY,
-      drawn.width,
-      drawn.height,
+      display.width,
+      display.height,
       canvasImage.width,
       canvasImage.height
     );
@@ -1179,6 +1206,23 @@ function App() {
                 {VIEW_ZOOM_PRESETS.map((preset) => (
                   <option key={preset.label} value={preset.value}>
                     {preset.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="zoom-preset-select"
+                value={viewInterpolationId}
+                onChange={(e) =>
+                  setViewInterpolationId(
+                    e.target.value as InterpolationMethodId
+                  )
+                }
+                title="Метод интерполяции при масштабировании просмотра"
+              >
+                {INTERPOLATION_METHODS.map((method) => (
+                  <option key={method.id} value={method.id}>
+                    {method.label}
                   </option>
                 ))}
               </select>

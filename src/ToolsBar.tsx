@@ -162,30 +162,6 @@ export function ToolsBar({
   const grayscaleActive =
     activeChannels.red && activeChannels.green && activeChannels.blue;
 
-  // Функция для получения корректного превью для альфа-канала
-  const getAlphaPreviewContent = () => {
-    const alphaPreview =
-      getChannelPreview("alpha");
-  
-    return (
-      <div className="alpha-preview-wrapper">
-        <div className="alpha-preview-checkerboard" />
-  
-        {alphaPreview && (
-          <img
-            src={alphaPreview}
-            alt="Alpha channel preview"
-            className={`channel-preview alpha-preview-image ${
-              !activeChannels.alpha
-                ? "alpha-preview-image--hidden"
-                : ""
-            }`}
-          />
-        )}
-      </div>
-    );
-  };
-
   return (
     <aside className="tools-bar">
       <h3 className="tools-bar__title">Инструменты</h3>
@@ -390,7 +366,13 @@ export function ToolsBar({
                     title="Альфа-канал (прозрачность)"
                   >
                     <div className="channels-bar__btn-content">
-                      {getAlphaPreviewContent()}
+                      {getChannelPreview("alpha") && (
+                        <img
+                          src={getChannelPreview("alpha")}
+                          alt="Alpha channel preview"
+                          className="channel-preview"
+                        />
+                      )}
                       <span className="channel-label">
                         {isGb7Image ? "Mask" : getChannelLabel("alpha")}
                         {!activeChannels.alpha && (
